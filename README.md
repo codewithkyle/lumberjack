@@ -4,6 +4,6 @@
 
 ## Design
 
-<p align="center">
-  <img alt="lumberjack design concept" src="https://github.com/users/codewithkyle/projects/6/assets/15202776/49b71801-d434-4b02-922b-54b6d8bd5872">
-</p>
+| Dark | Light |
+| - | - |
+| ![Preview Dark Mode](https://github.com/codewithkyle/lumberjack/assets/15202776/844afd55-c566-4b6a-a1eb-bbf6114a1a4f) | ![Preview light mode](https://github.com/codewithkyle/lumberjack/assets/15202776/fb5c4ef9-9497-4bf7-9fa8-4f2d70b554ba) |
