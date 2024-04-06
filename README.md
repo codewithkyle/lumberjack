@@ -10,11 +10,10 @@
 
 ## Schema
 
-#### General Example
+#### Example 1
 
 ```
 [Informational] - 2024-04-06T08:48:24Z
-Environment: Dev
 Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
 Category: Example
 Message:
@@ -23,11 +22,10 @@ It can span many lines.
 ---[EOL]--
 ```
 
-#### Error Example
+#### Example 2
 
 ```
 [Error] - 2024-04-06T08:48:24Z
-Environment: Dev
 Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
 Category: Example
 File: /home/codewithkyle/my-app/services/DatabaseService.php
@@ -44,12 +42,6 @@ A log must always begin with the [log serverity](https://datatracker.ietf.org/do
 The following values are optional:
 
 > **Note**: if none of the optional values exist within a log entry the log will be discarded and ignored.
-
-`Environment`
-
-Any string value. It will be used for filtering logs within the admin web portal.
-
----
 
 `Branch`
 
