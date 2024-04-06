@@ -6,7 +6,4 @@
 
 | Dark | Light |
 | - | - |
-| ![Preview Dark Mode](https://github.com/codewithkyle/lumberjack/assets/15202776/5cac38c7-a36f-40e6-94af-360e20d35bc8) | ![Preview light mode](https://github.com/codewithkyle/lumberjack/assets/15202776/433a45f7-d46a-4b3f-b5e4-b01edf9aff2e) |
-
-
-
+| ![Preview Dark Mode](https://github.com/codewithkyle/lumberjack/assets/15202776/5cac38c7-a36f-40e6-94af-360e20d35bc8) | ![Preview Light Mode](https://github.com/codewithkyle/lumberjack/assets/15202776/2ae9cbc5-8bc3-4aec-8ec8-796a2bf745f4) |
