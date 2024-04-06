@@ -16,6 +16,7 @@
 [Informational] - 2024-04-06T08:48:24Z
 Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
 Category: Example
+Custom Key: hi mom!
 Message:
 This is the an example message.
 It can span many lines.
@@ -76,6 +77,10 @@ Any integer or string value. This value should be the line number that triggered
 `Message`
 
 The message can contain any data type and may span multiple lines. Anything written within the lines will be parsed and stored as a string. The message parser will continue to parse and append new lines to the log entry message until the `---[EOL]--` marker is reached. The message must always appear last within a log entry.
+
+---
+
+Lumberjack also supports custom data definitions. Custom data is limited to one line. It must start with a key followed immediately by a `:` symbol. The key and the data will both be parsed and stored as strings. The custom keys will be toggleable within the admin portal data table settings and will be hidden by default.
 
 ## Shipping Log Files
 
