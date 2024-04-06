@@ -92,8 +92,8 @@ find /path/to/app/logs -type f -name "*.log" -exec bash -c 'curl -X POST -H "Lum
 
 Within the cURL request the URL will need to be replaced with the URL of your Lumberjack server.
 
-The `Lumberjack-App` header will need to be chagned to the name of the application that is creating the logs.
+The `Lumberjack-App` header will need to be changed to the name of the application that is creating the logs.
 
-The `Lumberjack-Env` header will need to be changed based on what environment your application is running in.
+The `Lumberjack-Env` header will need to be updated to the environment your application is running in. It can be any string value and will be used for filtering logs within the admin web portal.
 
 > We recommend configuring the log shipping command as a cron job to automatically ship new logs at 5 minute intervals.
