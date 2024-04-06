@@ -76,3 +76,19 @@ Any integer or string value. This value should be the line number that triggered
 `Message`
 
 The message can contain any data type and may span multiple lines. Anything written within the lines will be parsed and stored as a string. The message parser will continue to parse and append new lines to the log entry message until the `---[EOL]--` marker is reached. The message must always appear last within a log entry.
+
+## Shipping Log Files
+
+Log files can be easily sent to the Lumberjack service from any machine that has find, cURL, and bash installed using the following command:
+
+```bash
+find /path/to/app/logs -type f -name "*.log" -exec bash -c 'curl -X POST -H "Lumberjack-App: My App" -H "Lumberjack-Env: Dev" -d @{} http://example.com && [[ $? -eq 0 ]] && rm -f "{}"' \;
+```
+
+Within the cURL request the URL will need to be replaced with the URL of your Lumberjack server.
+
+The `Lumberjack-App` header will need to be chagned to the name of the application that is creating the logs.
+
+The `Lumberjack-Env` header will need to be changed based on what environment your application is running in.
+
+> We recommend configuring the log shipping command as a cron job to automatically ship new logs at 5 minute intervals.
