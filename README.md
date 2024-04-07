@@ -40,9 +40,7 @@ It can span many lines.
 
 A log must always begin with the [log serverity](https://datatracker.ietf.org/doc/html/rfc5424) name contained within a pair of `[]` followed by a [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) UTC timestamp seperated by a `-`.
 
-The following values are optional:
-
-> **Note**: if none of the optional values exist within a log entry the log will be discarded and ignored.
+All of the following values are optional. If none of the optional values exist within a log entry the log will be discarded and ignored.
 
 `Branch`
 
@@ -87,7 +85,7 @@ Lumberjack also supports custom data definitions. Custom data is limited to one 
 Log files can be easily sent to the Lumberjack service from any machine that has find, cURL, and bash installed using the following command:
 
 ```bash
-find /path/to/app/logs -type f -name "*.log" -exec bash -c 'curl -X POST -H "Lumberjack-App: My App" -H "Lumberjack-Env: Dev" -d @{} http://example.com && [[ $? -eq 0 ]] && rm -f "{}"' \;
+find /path/to/app/logs -type f -name "*.log" -exec bash -c 'curl -X POST -H "Lumberjack-App: My App" -H "Lumberjack-Env: Dev" --data-binary @{} http://example.com && [[ $? -eq 0 ]] && rm -f "{}"' \;
 ```
 
 Within the cURL request the URL will need to be replaced with the URL of your Lumberjack server.
