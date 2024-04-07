@@ -10,6 +10,8 @@ use std::env;
 use rand::{distributions::Alphanumeric, thread_rng};
 use rand::Rng;
 use owo_colors::OwoColorize;
+use std::fs;
+use std::path::Path;
 
 #[macro_use]
 extern crate dotenv_codegen;
@@ -56,15 +58,18 @@ async fn main() {
         println!("\nRestart Lumberjack with this key as the MASTER_KEY environment variable\n");
     }
 
+    let storage_path = Path::new(&storage_path);
+    if !storage_path.exists() {
+        fs::create_dir_all(storage_path).unwrap_or_else(|_| {
+            panic!("Failed to create storage directory at: {}", storage_path.display())
+        });
+    }
+
     let app = Router::new()
         .route("/", get(root));
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await.unwrap();
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn root() -> HelloTemplate<'static> {
-    HelloTemplate { name: "mom" }
 }
 
 fn generate_random_string(len: usize) -> String {
@@ -77,6 +82,9 @@ fn generate_random_string(len: usize) -> String {
   random_string
 }
 
+async fn root() -> HelloTemplate<'static> {
+    HelloTemplate { name: "mom" }
+}
 
 #[derive(Template)]
 #[template(path = "hello.twig.html")]
