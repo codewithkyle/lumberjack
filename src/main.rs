@@ -16,6 +16,7 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 use anyhow::{Result, Error};
+use std::io::Write;
 
 #[macro_use]
 extern crate dotenv_codegen;
@@ -158,10 +159,35 @@ async fn write_logs(req: Request<Body>, config: Arc<Config>) -> Result<(), AppEr
         return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
     }
 
+    let body = axum::body::to_bytes(req.into_body(), std::usize::MAX).await?;
+    if body.is_empty() {
+        return Err(AppError(anyhow::anyhow!("Body is empty")));
+    }
+
     let app_path = config.storage_path.join(app);
     if !app_path.exists() {
         fs::create_dir_all(&app_path)?;
     }
+
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+
+    let mut master_log_path = app_path.clone().join("masters");
+    if !master_log_path.exists() {
+        fs::create_dir_all(&master_log_path)?;
+    }
+    master_log_path = master_log_path.join(format!("{}.log", today));
+    let mut master_log = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&master_log_path)?;
+    master_log.write_all(&body)?;
+
+    let mut daily_log_path = app_path.clone().join("logs").join(today);
+    if !daily_log_path.exists() {
+        fs::create_dir_all(&daily_log_path)?;
+    }
+
+    // TODO: parse body and write to log files
 
     Ok(())
 }
