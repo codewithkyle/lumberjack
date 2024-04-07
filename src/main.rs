@@ -1,5 +1,5 @@
 use axum::{
-    body::Body,
+    body::{Body, Bytes},
     http::{Request, StatusCode},
     routing::get,
     routing::post,
@@ -14,12 +14,15 @@ use rand::Rng;
 use owo_colors::OwoColorize;
 use std::fs;
 use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 use anyhow::{Result, Error};
 use std::io::Write;
 use std::collections::HashMap;
 use core::iter::Peekable;
 use std::slice::Iter;
+use uuid::Uuid;
+use chrono::DateTime;
 
 #[macro_use]
 extern crate dotenv_codegen;
@@ -73,6 +76,7 @@ enum ErrorLevel {
 
 #[derive(Clone, Debug, Serialize)]
 struct Log {
+    uid: String,
     level: ErrorLevel,
     file: String,
     function: String,
@@ -209,24 +213,6 @@ async fn write_logs(req: Request<Body>, config: Arc<Config>) -> Result<(), AppEr
         fs::create_dir_all(&app_path)?;
     }
 
-    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
-
-    let mut master_log_path = app_path.clone().join("masters");
-    if !master_log_path.exists() {
-        fs::create_dir_all(&master_log_path)?;
-    }
-    master_log_path = master_log_path.join(format!("{}.log", today));
-    let mut master_log = fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&master_log_path)?;
-    master_log.write_all(&body)?;
-
-    let daily_log_path = app_path.clone().join("logs").join(today.clone());
-    if !daily_log_path.exists() {
-        fs::create_dir_all(&daily_log_path)?;
-    }
-
     let mut logs: Vec<Log> = Vec::new();
     let string_body = String::from_utf8(body.to_vec())?;
     let mut building_log = false;
@@ -250,21 +236,42 @@ async fn write_logs(req: Request<Body>, config: Arc<Config>) -> Result<(), AppEr
             lines.push(line.to_string());
         }
     }
+    
+    write_log_files(logs, app_path)?;
 
+    Ok(())
+}
+
+fn write_log_files(logs: Vec<Log>, app_path: PathBuf) -> Result<(), Error> {
     let daily_ledger_path = app_path.clone().join("ledgers");
     if !daily_ledger_path.exists() {
         fs::create_dir_all(&daily_ledger_path)?;
     }
-    let daily_ledger = daily_ledger_path.join(format!("{}.jsonl", today));
-    let mut daily_ledger = fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&daily_ledger)?;
 
     for log in logs {
+        let log_date = DateTime::parse_from_rfc3339(log.timestamp.as_str())?.format("%Y-%m-%d").to_string();
+
+        let daily_log_path = app_path.clone().join("search").join(log_date.clone());
+        if !daily_log_path.exists() {
+            fs::create_dir_all(&daily_log_path)?;
+        }
+        
+        let ledger = daily_ledger_path.join(format!("{}.jsonl", log_date));
+        let mut ledger = fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&ledger)?;
+
         let log_json = serde_json::to_string(&log)?;
-        daily_ledger.write_all(log_json.as_bytes())?;
-        daily_ledger.write_all("\n".as_bytes())?;
+        ledger.write_all(log_json.as_bytes())?;
+        ledger.write_all("\n".as_bytes())?;
+
+        let message_cache = daily_log_path.join(format!("{}", log.uid));
+        let mut message_cache = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(&message_cache)?;
+        message_cache.write_all(log.message.as_bytes())?;
     }
 
     Ok(())
@@ -273,6 +280,7 @@ async fn write_logs(req: Request<Body>, config: Arc<Config>) -> Result<(), AppEr
 fn create_log(lines: &Vec<String>) -> Log {
     let mut lines = lines.iter().peekable();
     let mut new_log: Log = Log {
+        uid: Uuid::now_v7().to_string(),
         level: ErrorLevel::Unknown,
         file: "".to_string(),
         function: "".to_string(),
