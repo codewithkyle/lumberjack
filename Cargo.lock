@@ -378,6 +378,7 @@ dependencies = [
  "chrono",
  "dotenv",
  "regex",
+ "serde",
 ]
 
 [[package]]
