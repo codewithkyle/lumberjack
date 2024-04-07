@@ -2,7 +2,9 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
     routing::get,
+    routing::post,
     Router,
+    response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
 use askama_axum::Template;
@@ -12,6 +14,8 @@ use rand::Rng;
 use owo_colors::OwoColorize;
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
+use anyhow::{Result, Error};
 
 #[macro_use]
 extern crate dotenv_codegen;
@@ -65,11 +69,23 @@ async fn main() {
         });
     }
 
+    let config = Arc::new(Config {
+        storage_path: storage_path.clone().into(),
+        master_key: master_key.clone(),
+    });
+
     let app = Router::new()
-        .route("/", get(root));
+        .route("/", get(root))
+        .route("/logs", post(move |req| write_logs(req, config.clone())));
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+#[derive(Clone)]
+struct Config {
+    storage_path: Box<Path>,
+    master_key: String,
 }
 
 fn generate_random_string(len: usize) -> String {
@@ -82,6 +98,35 @@ fn generate_random_string(len: usize) -> String {
   random_string
 }
 
+fn to_kebab_case(input: &str) -> String {
+    let trimmed = input.trim();
+    let kebab_case = trimmed.to_lowercase().replace(" ", "-");
+    kebab_case
+}
+
+struct AppError(anyhow::Error);
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("{}", self.0),
+        )
+            .into_response()
+    }
+}
+
+// This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
+// `Result<_, AppError>`. That way you don't need to do that manually.
+impl<E> From<E> for AppError
+where
+    E: Into<anyhow::Error>,
+{
+    fn from(err: E) -> Self {
+        Self(err.into())
+    }
+}
+
 async fn root() -> HelloTemplate<'static> {
     HelloTemplate { name: "mom" }
 }
@@ -90,4 +135,33 @@ async fn root() -> HelloTemplate<'static> {
 #[template(path = "hello.twig.html")]
 struct HelloTemplate<'a> {
     name: &'a str,
+}
+
+async fn write_logs(req: Request<Body>, config: Arc<Config>) -> Result<(), AppError> {
+    let app = req.headers().get("Lumberjack-App");
+    let env = req.headers().get("Lumberjack-Env");
+    let key = req.headers().get("Authorization");
+
+    if key.is_none() {
+        return Err(AppError(anyhow::anyhow!("Authorization header is required")));
+    }
+
+    if app.is_none() || env.is_none(){
+        return Err(AppError(anyhow::anyhow!("Lumberjack-App and Lumberjack-Env headers are required")));
+    }
+
+    let key = key.unwrap().to_str().unwrap();
+    let app = to_kebab_case(app.unwrap().to_str().unwrap());
+    let env = env.unwrap().to_str().unwrap();
+
+    if key != config.master_key {
+        return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+    }
+
+    let app_path = config.storage_path.join(app);
+    if !app_path.exists() {
+        fs::create_dir_all(&app_path)?;
+    }
+
+    Ok(())
 }
