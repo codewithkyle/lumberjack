@@ -60,6 +60,7 @@
 
         <script defer src="https://unpkg.com/htmx.org@1.9.11"></script>
         <script defer src="https://unpkg.com/alpinejs@3.13.8/dist/cdn.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
         <script src="/static/main.js"></script>
     </head>
     <body>
@@ -84,9 +85,11 @@
                 >
                     {% for (app, logs) in apps %}
                         {% for log in logs %}
-                            <button>
+                            <button
+                                x-on:click="open = false;$dispatch('file-selected', { app: '{{ app }}', log: '{{ log }}' })"
+                            >
                                 <span class="route">@local/{{ app }}/</span>
-                                <span class="file">{{ log }}</span>
+                                <span class="file">{{ log }}.log</span>
                             </button>
                         {% endfor %}
                     {% endfor %}

@@ -175,7 +175,9 @@ async fn main() {
         .route("/", get(root))
         .route("/logs", post(write_logs))
         .route_service("/static/main.js", ServeFile::new("static/main.js"))
-        .route_service("/static/main.css", ServeFile::new("static/main.css"));
+        .route_service("/static/main.css", ServeFile::new("static/main.css"))
+        .route_service("/static/worker.sql-wasm.js", ServeFile::new("static/worker.sql-wasm.js"))
+        .route_service("/static/sql-wasm.wasm", ServeFile::new("static/sql-wasm.wasm"));
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -207,7 +209,7 @@ async fn root() -> RootTemplate {
         for log in logs {
             let log = log.unwrap();
             let log = log.path();
-            let log = log.file_name().unwrap().to_str().unwrap().to_string();
+            let log = log.file_name().unwrap().to_str().unwrap().to_string().replace(".jsonl", "");
             log_dates.push(log);
         }
         apps.insert(app, log_dates);
