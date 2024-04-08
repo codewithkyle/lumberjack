@@ -6,6 +6,7 @@ use axum::{
     Router,
     response::{IntoResponse, Response},
 };
+use tower_http::services::ServeFile;
 use serde::Serialize;
 use askama_axum::Template;
 use std::env;
@@ -166,20 +167,21 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(root))
-        .route("/logs", post(move |req| write_logs(req, config.clone())));
+        .route("/logs", post(move |req| write_logs(req, config.clone())))
+        .route_service("/static/main.js", ServeFile::new("static/main.js"))
+        .route_service("/static/main.css", ServeFile::new("static/main.css"));
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn root() -> HelloTemplate<'static> {
-    HelloTemplate { name: "mom" }
+async fn root() -> RootTemplate {
+    RootTemplate { }
 }
 
 #[derive(Template)]
-#[template(path = "hello.twig.html")]
-struct HelloTemplate<'a> {
-    name: &'a str,
+#[template(path = "root.twig.html")]
+struct RootTemplate {
 }
 
 async fn write_logs(req: Request<Body>, config: Arc<Config>) -> Result<(), AppError> {

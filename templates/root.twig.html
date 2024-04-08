@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Lumberjack</title>
+        <meta name="description" content="A log aggregation tool.">
+
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <style>
+            *, *::before, *::after {
+              box-sizing: border-box;
+            }
+            * {
+              margin: 0;
+            }
+            body {
+              line-height: 1.5;
+              -webkit-font-smoothing: antialiased;
+            }
+            img, picture, video, canvas, svg {
+              display: block;
+              max-width: 100%;
+            }
+            input, button, textarea, select {
+              font: inherit;
+            }
+            p, h1, h2, h3, h4, h5, h6 {
+              overflow-wrap: break-word;
+            }
+            #root, #__next {
+              isolation: isolate;
+            }
+            *,
+            *::before,
+            *::after {
+                border: none;
+                position: relative;
+                box-sizing: border-box;
+                outline: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+            button
+            {
+                cursor: pointer;
+                background: transparent;
+                user-select: none;
+                font-size: inherit;
+                font-weight: inherit;
+                padding: 0;
+            }
+            a{
+                text-decoration: none;
+                color: inherit;
+            }
+        </style>
+
+        <link href="https://unpkg.com/brixi@^0.8/brixi.min.css" rel="stylesheet" />
+        <link href="/static/main.css" rel="stylesheet" />
+
+        <script defer src="https://unpkg.com/htmx.org@1.9.11"></script>
+        <script src="/static/main.js"></script>
+    </head>
+    <body>
+        <header>
+            <span class="label">Log File:</span>
+            <file-selector>
+                <div flex="row nowrap items-center">
+                    <span class="route">@local/test/</span>
+                    <span class="file">2024-04-08.log</span>
+                </div>
+                <div flex="row nowrap items-center">
+                    <span class="size">4.20 MB</span>
+                    <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l4 -4l4 4" /><path d="M16 15l-4 4l-4 -4" /></svg>
+                </div>
+            </file-selector>
+            <button>
+                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /></svg>
+            </button>
+            <button>
+                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>
+            </button>
+        </header>
+        <table-filters>
+            <button>
+                <span>Level</span>
+                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l4 -4l4 4" /><path d="M16 15l-4 4l-4 -4" /></svg>
+            </button>
+            <button>
+                <span>Category</span>
+                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l4 -4l4 4" /><path d="M16 15l-4 4l-4 -4" /></svg>
+            </button>
+            <button>
+                <span>Environment</span>
+                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l4 -4l4 4" /><path d="M16 15l-4 4l-4 -4" /></svg>
+            </button>
+            <message-search>
+                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+                <input type="text" placeholder="Search for a message...">
+            </message-search>
+        </table-filters>
+        <table-wrapper>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Level</th>
+                        <th>Time</th>
+                        <th>Category</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in 0..100 %}
+                    <tr>
+                        <td col="level" level="information">
+                            <div flex="row nowrap items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="currentColor"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 2c5.523 0 10 4.477 10 10a10 10 0 0 1 -19.995 .324l-.005 -.324l.004 -.28c.148 -5.393 4.566 -9.72 9.996 -9.72zm0 9h-1l-.117 .007a1 1 0 0 0 0 1.986l.117 .007v3l.007 .117a1 1 0 0 0 .876 .876l.117 .007h1l.117 -.007a1 1 0 0 0 .876 -.876l.007 -.117l-.007 -.117a1 1 0 0 0 -.764 -.857l-.112 -.02l-.117 -.006v-3l-.007 -.117a1 1 0 0 0 -.876 -.876l-.117 -.007zm.01 -3l-.127 .007a1 1 0 0 0 0 1.986l.117 .007l.127 -.007a1 1 0 0 0 0 -1.986l-.117 -.007z" /></svg>
+                                <span>Info</span>
+                            </div>
+                        </td>
+                        <td col="timestamp">2024-04-05 18:16:03</td>
+                        <td col="category">AuthService::verify</td>
+                        <td col="message">Session verified with global authentication service</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </table-wrapper>
+        <table-pagination>
+            <button disabled>
+                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6" /></svg>
+            </button>
+            <button>
+                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+            </button>
+            <span>1-100 of 420</span>
+        </table-pagination>
+    </body>
+</html>
+
