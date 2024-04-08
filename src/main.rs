@@ -6,33 +6,30 @@ use axum::{
     Router,
     response::{IntoResponse, Response},
 };
+use axum_macros::debug_handler;
 use tower_http::services::ServeFile;
 use serde::Serialize;
 use askama_axum::Template;
-use std::env;
 use rand::{distributions::Alphanumeric, thread_rng};
 use rand::Rng;
 use owo_colors::OwoColorize;
-use std::fs;
+use std::env;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::Arc;
-use anyhow::{Result, Error};
+use std::fs;
+use std::fs::read_dir;
 use std::io::Write;
 use std::collections::HashMap;
-use core::iter::Peekable;
 use std::slice::Iter;
+use std::sync::Mutex;
+use anyhow::{Result, Error};
+use core::iter::Peekable;
 use uuid::Uuid;
 use chrono::DateTime;
+use lazy_static::lazy_static;
 
 #[macro_use]
 extern crate dotenv_codegen;
-
-#[derive(Clone)]
-struct Config {
-    storage_path: Box<Path>,
-    master_key: String,
-}
 
 fn generate_random_string(len: usize) -> String {
   let rng = thread_rng();
@@ -111,6 +108,16 @@ where
     }
 }
 
+lazy_static! {
+    static ref CONFIG: Mutex<HashMap<String, String>> = Mutex::new({
+        let mut m = HashMap::new();
+        m.insert("storage_path".to_string(), dotenv!("STORAGE_PATH").to_string());
+        m.insert("master_key".to_string(), dotenv!("MASTER_KEY").to_string());
+        m.insert("port".to_string(), dotenv!("PORT").to_string());
+        m
+    });
+}
+
 #[tokio::main]
 async fn main() {
     let ascii_name = r#"
@@ -128,46 +135,45 @@ async fn main() {
 "#;
     println!("{}", ascii_name);
 
-    let mut storage_path = dotenv!("STORAGE_PATH").to_string();
-    if storage_path.is_empty() {
-        storage_path = "./data".to_string();
+    let mut port = "7777".to_string();
+    {
+        let mut config = CONFIG.lock().unwrap();
+
+        if config.get("storage_path").unwrap().is_empty() {
+            config.insert("storage_path".to_string(), "./data".to_string());
+        }
+
+        port = config.get("port").unwrap().to_string();
+        if port.is_empty() {
+            config.insert("port".to_string(), "7777".to_string());
+            port = "7777".to_string();
+        }
+
+        println!("Storage path:           \"{}\"", config.get("storage_path").unwrap());
+        println!("Package version:        \"{}\"", env!("CARGO_PKG_VERSION"));
+        println!("Server listening on:    \"http://0.0.0.0:{}\"", config.get("port").unwrap());
+
+        println!("\nThank you for using Lumberjack!\n");
+
+        if config.get("master_key").unwrap().is_empty() {
+            config.insert("master_key".to_string(), generate_random_string(128));
+            println!("{}", " No MASTER_KEY found in .env file. \n".bold().black().on_yellow());
+            println!("We generated a new secure master key for you (you can safely use this token):\n");
+            println!(">> {} <<", config.get("master_key").unwrap());
+            println!("\nRestart Lumberjack with this key as the MASTER_KEY environment variable\n");
+        }
+
+        let storage_path = Path::new(config.get("storage_path").unwrap());
+        if !storage_path.exists() {
+            fs::create_dir_all(storage_path).unwrap_or_else(|_| {
+                panic!("Failed to create storage directory at: {}", storage_path.display())
+            });
+        }
     }
-
-    let mut port = dotenv!("PORT").to_string();
-    if port.is_empty() {
-        port = "7777".to_string();
-    }
-
-    println!("Storage path:           \"{}\"", storage_path);
-    println!("Package version:        \"{}\"", env!("CARGO_PKG_VERSION"));
-    println!("Server listening on:    \"http://0.0.0.0:{}\"", port);
-
-    println!("\nThank you for using Lumberjack!\n");
-
-    let mut master_key = dotenv!("MASTER_KEY").to_string();
-    if master_key.is_empty() {
-        master_key = generate_random_string(128);
-        println!("{}", " No MASTER_KEY found in .env file. \n".bold().black().on_yellow());
-        println!("We generated a new secure master key for you (you can safely use this token):\n");
-        println!(">> {} <<", master_key);
-        println!("\nRestart Lumberjack with this key as the MASTER_KEY environment variable\n");
-    }
-
-    let storage_path = Path::new(&storage_path);
-    if !storage_path.exists() {
-        fs::create_dir_all(storage_path).unwrap_or_else(|_| {
-            panic!("Failed to create storage directory at: {}", storage_path.display())
-        });
-    }
-
-    let config = Arc::new(Config {
-        storage_path: storage_path.into(),
-        master_key: master_key.clone(),
-    });
 
     let app = Router::new()
         .route("/", get(root))
-        .route("/logs", post(move |req| write_logs(req, config.clone())))
+        .route("/logs", post(write_logs))
         .route_service("/static/main.js", ServeFile::new("static/main.js"))
         .route_service("/static/main.css", ServeFile::new("static/main.css"));
 
@@ -175,44 +181,74 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn root() -> RootTemplate {
-    RootTemplate { }
-}
-
 #[derive(Template)]
 #[template(path = "root.twig.html")]
 struct RootTemplate {
+    apps: HashMap<String, Vec<String>>,
 }
 
-async fn write_logs(req: Request<Body>, config: Arc<Config>) -> Result<(), AppError> {
-    let app = req.headers().get("Lumberjack-App");
-    let env = req.headers().get("Lumberjack-Env");
-    let key = req.headers().get("Authorization");
+#[debug_handler]
+async fn root() -> RootTemplate {
+    let mut storage_path = Path::new("").to_path_buf();
 
+    {
+        let config = CONFIG.lock().unwrap();
+        storage_path = Path::new(config.get("storage_path").unwrap()).to_owned();
+    }
+
+    let paths = read_dir(storage_path).unwrap();
+    let mut apps: HashMap<String, Vec<String>> = HashMap::new();
+    for path in paths {
+        let path = path.unwrap();
+        let path = path.path();
+        let app = path.file_name().unwrap().to_str().unwrap().to_string();
+        let logs = read_dir(path.join("ledgers")).unwrap();
+        let mut log_dates: Vec<String> = Vec::new();
+        for log in logs {
+            let log = log.unwrap();
+            let log = log.path();
+            let log = log.file_name().unwrap().to_str().unwrap().to_string();
+            log_dates.push(log);
+        }
+        apps.insert(app, log_dates);
+    }
+    RootTemplate { apps: apps }
+}
+
+#[debug_handler]
+async fn write_logs(req: Request<Body>) -> Result<StatusCode, AppError> {
+
+    let key = req.headers().get("Authorization");
     if key.is_none() {
         return Err(AppError(anyhow::anyhow!("Authorization header is required")));
     }
+    let key = key.unwrap().to_str().unwrap();
 
+    let env = req.headers().get("Lumberjack-Env");
+    let app = req.headers().get("Lumberjack-App");
     if app.is_none() || env.is_none(){
         return Err(AppError(anyhow::anyhow!("Lumberjack-App and Lumberjack-Env headers are required")));
     }
-
-    let key = key.unwrap().to_str().unwrap();
-    let app = to_kebab_case(app.unwrap().to_str().unwrap());
     let env = env.unwrap().to_str().unwrap().to_string();
+    let app = to_kebab_case(app.unwrap().to_str().unwrap());
 
-    if key != config.master_key {
-        return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+    let mut app_path: PathBuf = Path::new("").to_path_buf();
+    {
+        let config = CONFIG.lock().unwrap();
+
+        if key != config.get("master_key").unwrap() {
+            return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+        }
+
+        app_path = Path::new(config.get("storage_path").unwrap()).join(app);
+        if !app_path.exists() {
+            fs::create_dir_all(&app_path)?;
+        }
     }
 
     let body = axum::body::to_bytes(req.into_body(), std::usize::MAX).await?;
     if body.is_empty() {
         return Err(AppError(anyhow::anyhow!("Body is empty")));
-    }
-
-    let app_path = config.storage_path.join(app);
-    if !app_path.exists() {
-        fs::create_dir_all(&app_path)?;
     }
 
     let mut logs: Vec<Log> = Vec::new();
@@ -241,7 +277,7 @@ async fn write_logs(req: Request<Body>, config: Arc<Config>) -> Result<(), AppEr
     
     write_log_files(logs, app_path)?;
 
-    Ok(())
+    Ok(StatusCode::OK)
 }
 
 fn write_log_files(logs: Vec<Log>, app_path: PathBuf) -> Result<(), Error> {

@@ -131,6 +131,44 @@ body {
                 width: 14px;
                 height: 14px;
             }
+
+            & file-menu {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background-color: var(--white);
+                border: 1px solid var(--border-light);
+                border-radius: 6px;
+                box-shadow: var(--shadow-black-md);
+                z-index: 2000;
+                max-height: 50vh;
+                overflow-y: auto;
+                margin-top: 0.25rem;
+
+                & button {
+                    display: block;
+                    width: 100%;
+                    padding: 0 0.5rem;
+                    height: 32px;
+                    font-size: var(--font-sm);
+                    line-height: 32px;
+                    text-align: left;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    color: var(--text-lighter);
+                    cursor: pointer;
+                    background-color: transparent;
+                    transition: all 0.3s var(--ease-in-out);
+
+                    &:hover,
+                    &:focus-visible {
+                        color: var(--text-light);
+                        background-color: var(--bg-lighter);
+                    }
+                }
+            }
         }
 
         & button {
