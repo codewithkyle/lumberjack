@@ -291,5 +291,19 @@ class TableColumnEditor extends HTMLElement {
             </ul>
         `;
         render(view, this);
+        new Sortable(this.querySelector("ul"), {
+            animation: 150,
+            handle: 'svg',
+            onUpdate: (e) => {
+                this.columns = Array.from(this.querySelectorAll("li")).map((li, i) => {
+                    return {
+                        col: li.querySelector("input").name,
+                        show: li.querySelector("input").checked,
+                    };
+                });
+                localStorage.setItem(`${this.app}-${this.file}-columns`, JSON.stringify(this.columns));
+                window.dispatchEvent(new CustomEvent("columns-changed"));
+            }
+        });
     }
 }
