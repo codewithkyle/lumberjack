@@ -93,6 +93,45 @@ body {
             color: var(--text-lighter);
         }
 
+        & table-settings {
+            display: inline-block;
+            position: relative;
+
+            & settings-menu {
+                position: absolute;
+                top: 100%;
+                right: 0;
+                width: 200px;
+                background-color: var(--white);
+                border: 1px solid var(--border-light);
+                border-radius: 8px;
+                box-shadow: var(--shadow-black-md);
+                z-index: 2000;
+                padding: 0.5rem;
+
+                & label {
+                    display: block;
+                    font-size: var(--font-xs);
+                    font-weight: var(--font-medium);
+                    color: var(--text-lighter);
+                    margin-bottom: 0.25rem;
+                    padding: 0.25rem 0.25rem 0 0.25rem;
+                }
+
+                & select {
+                    margin-bottom: 0.5rem;
+                    padding: 0 0.5rem;
+                    height: 32px;
+                    border: 1px solid var(--border-light);
+                    border-radius: 6px;
+                    background-color: var(--white);
+                    font-size: var(--font-sm);
+                    width: 100%;
+                    cursor: pointer;
+                }
+            }
+        }
+
         & file-selector {
             display: inline-flex;
             align-items: center;
@@ -139,7 +178,7 @@ body {
                 width: 100%;
                 background-color: var(--white);
                 border: 1px solid var(--border-light);
-                border-radius: 6px;
+                border-radius: 8px;
                 box-shadow: var(--shadow-black-md);
                 z-index: 2000;
                 max-height: 50vh;
@@ -162,7 +201,7 @@ body {
                     cursor: pointer;
                     background-color: transparent;
                     transition: all 0.3s var(--ease-in-out);
-                    border-radius: 4px;
+                    border-radius: 6px;
 
                     &:hover,
                     &:focus-visible {
@@ -325,8 +364,17 @@ body {
                         padding-right: 1rem;
                     }
 
-                    &[col="category"] {
+                    &[col="category"],
+                    &[col="file"],
+                    &[col="function"],
+                    &[col="line"],
+                    &[col="env"] {
                         color: var(--text-lighter);
+                    }
+
+                    &[col="env"],
+                    &[col="category"] {
+                        text-transform: capitalize;
                     }
 
                     &[col="level"] {
@@ -335,6 +383,12 @@ body {
                             height: 18px;
                             margin-right: 0.25rem;
                         }
+                    }
+
+                    &[col="message"]{
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
                     }
 
                     &[level="info"] {

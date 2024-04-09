@@ -1,4 +1,8 @@
 import { html, render } from "https://unpkg.com/lit-html@3.1.0/lit-html.js";
+import dayjs from "https://unpkg.com/dayjs@1.11.10/esm/index.js";
+import utc from "https://unpkg.com/dayjs@1.11.10/esm/plugin/utc/index.js"
+
+dayjs.extend(utc);
 
 class SQL {
     constructor() {
@@ -138,6 +142,7 @@ class TableComponent extends HTMLElement{
         this.loading = false;
         this.page = 0;
         this.pageSize = 100;
+        this.timezone = localStorage.getItem("timezone") || "UTC";
     }
     connectedCallback(){
         window.addEventListener("file-selected", async (e) => {
@@ -147,11 +152,21 @@ class TableComponent extends HTMLElement{
             this.loading = false;
             this.render();
         });
+        window.addEventListener("timezone-changed", (e) => {
+            this.timezone = e.detail.timezone;
+            this.render();
+        });
         this.render();
     }
 
     renderRow(log){
         console.log(log);
+        let timestamp;
+        if (this.timezone == "local"){
+            timestamp = dayjs(log.timestamp).local().format("YYYY-MM-DD HH:mm:ss");
+        } else {
+            timestamp = dayjs(log.timestamp).utc().format("YYYY-MM-DD HH:mm:ss");
+        }
         return html`
             <tr>
                 <td col="level" level="${log.level.toLowerCase()}">
@@ -160,7 +175,7 @@ class TableComponent extends HTMLElement{
                         <span>${log.level}</span>
                     </div>
                 </td>
-                <td col="timestamp">${dayjs(log.timestamp).format("YYYY-MM-DD HH:mm:ss")}</td>
+                <td col="timestamp">${timestamp}</td>
                 <td col="category">${log.category}</td>
                 <td col="message">${log.message}</td>
                 <td col="env">${log.env}</td>

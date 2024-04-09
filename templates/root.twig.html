@@ -60,11 +60,13 @@
 
         <script defer src="https://unpkg.com/htmx.org@1.9.11"></script>
         <script defer src="https://unpkg.com/alpinejs@3.13.8/dist/cdn.min.js"></script>
-        <script defer src="https://unpkg.com/dayjs@1.11.10/dayjs.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
         <script type="module" src="/static/main.js"></script>
     </head>
-    <body>
+    <body
+        x-data="{ theme: localStorage.getItem('theme') || 'light' }"
+        x-init="console.log(theme);$el.dataset.theme = theme;"
+    >
         <header>
             <span class="label">Log File:</span>
             <file-selector
@@ -100,9 +102,36 @@
             <button>
                 <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /></svg>
             </button>
-            <button>
-                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>
-            </button>
+            <table-settings
+                x-data="{ open: false, theme: localStorage.getItem('theme') || 'light', timezone: localStorage.getItem('timezone') || 'UTC' }"
+                x-on:click.away="open = false"
+                x-on:keydown.escape.window="open = false"
+            >
+                <button
+                    x-on:click="open = !open"
+                >
+                    <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>
+                </button>
+                <settings-menu
+                    x-show="open"
+                >
+                    <label for="theme">Theme</label>
+                    <select
+                        id="theme"
+                        x-on:change="theme = $event.target.value;localStorage.setItem('theme', theme);document.body.dataset.theme = theme;"
+                    >
+                        <option :selected="theme == 'light'" value="light">Light</option>
+                        <option :selected="theme == 'dark'" value="dark">Dark</option>
+                    </select>
+                    <label for="timezone">Timezone</label>
+                    <select
+                        x-on:change="timezone = $event.target.value;localStorage.setItem('timezone', timezone);$dispatch('timezone-changed', { timezone: timezone });"
+                    >
+                        <option :selected="timezone == 'UTC'" value="UTC">UTC</option>
+                        <option :selected="timezone == 'local'" value="local">Local</option>
+                    </select>
+                </settings-menu>
+            </table-settings>
         </header>
         <table-filters>
             <button>
