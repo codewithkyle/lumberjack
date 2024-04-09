@@ -129,6 +129,41 @@ body {
                     width: 100%;
                     cursor: pointer;
                 }
+
+                & table-column-editor {
+                    display: block;
+                    width: 100%;
+
+                    & ul {
+                        list-style: none;
+                        padding: 0;
+                        margin: 0;
+
+                        & li {
+                            display: flex;
+                            align-items: center;
+                            flex-flow: row nowrap;
+                            padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+
+                            & svg {
+                                width: 14px;
+                                height: 14px;
+                                color: var(--icon-light);
+                                margin-right: 0.5rem;
+                                cursor: grab;
+                            }
+
+                            & label {
+                                display: inline-block;
+                                font-size: var(--font-sm);
+                                color: var(--text-light);
+                                font-weight: var(--font-regular);
+                                margin-left: 0.25rem;
+                                text-transform: capitalize;
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -334,6 +369,7 @@ body {
                     font-weight: var(--font-medium);
                     color: var(--text-lighter);
                     border-bottom: 1px solid var(--border-light);
+                    text-transform: capitalize;
 
                     &:first-child {
                         padding-left: 1rem;
@@ -355,6 +391,7 @@ body {
                     padding: 0 0.5rem;
                     font-size: var(--font-sm);
                     border-bottom: 1px solid var(--border-light);
+                    white-space: nowrap;
 
                     &:first-child {
                         padding-left: 1rem;
@@ -378,6 +415,8 @@ body {
                     }
 
                     &[col="level"] {
+                        min-width: 100px;
+
                         & svg {
                             width: 18px;
                             height: 18px;
@@ -389,6 +428,7 @@ body {
                         white-space: nowrap;
                         overflow: hidden;
                         text-overflow: ellipsis;
+                        max-width: 500px;
                     }
 
                     &[level="info"] {

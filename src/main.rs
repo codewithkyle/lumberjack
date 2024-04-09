@@ -227,8 +227,8 @@ async fn stream_log(PathExtractor(params): PathExtractor<(String,String)>, req: 
         //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
     //}
     //let key = key.unwrap().to_str().unwrap();
-    let app = params.0;
-    let file = params.1;
+    let app = params.0.to_lowercase().replace(".", "").replace("/", "");
+    let file = params.1.to_lowercase().replace(".", "").replace("/", "");
 
     if app.is_empty() {
         return Err(AppError(anyhow::anyhow!("App is required")));
@@ -246,7 +246,7 @@ async fn stream_log(PathExtractor(params): PathExtractor<(String,String)>, req: 
         app_path = Path::new(config.get("storage_path").unwrap()).join(app);
     }
 
-    let log_path = app_path.join("ledgers").join(file);
+    let log_path = app_path.join("ledgers").join(format!("{}.jsonl", file));
     if !log_path.exists() {
         return Err(AppError(anyhow::anyhow!("Log file not found")));
     }
