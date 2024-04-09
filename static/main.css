@@ -145,6 +145,7 @@ body {
                 max-height: 50vh;
                 overflow-y: auto;
                 margin-top: 0.25rem;
+                padding: 0.5rem;
 
                 & button {
                     display: block;
@@ -161,6 +162,7 @@ body {
                     cursor: pointer;
                     background-color: transparent;
                     transition: all 0.3s var(--ease-in-out);
+                    border-radius: 4px;
 
                     &:hover,
                     &:focus-visible {
