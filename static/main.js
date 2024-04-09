@@ -152,6 +152,7 @@ class TableComponent extends HTMLElement{
             this.loading = true;
             await parser.ingest(`/logs/${e.detail.app}/${e.detail.file}`);
             this.loading = false;
+            document.title = `${e.detail.file}.log · ${e.detail.app} · Lumberjack`;
             window.dispatchEvent(new CustomEvent("file-loaded", {
                 detail: e.detail,
             }));
