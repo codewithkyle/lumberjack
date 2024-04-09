@@ -5,6 +5,7 @@ use axum::{
     routing::post,
     Router,
     response::{IntoResponse, Response},
+    extract::Path as PathExtractor,
 };
 use axum_macros::debug_handler;
 use tower_http::services::ServeFile;
@@ -174,10 +175,12 @@ async fn main() {
     let app = Router::new()
         .route("/", get(root))
         .route("/logs", post(write_logs))
+        .route("/logs/:app/:file", get(stream_log))
         .route_service("/static/main.js", ServeFile::new("static/main.js"))
         .route_service("/static/main.css", ServeFile::new("static/main.css"))
         .route_service("/static/worker.sql-wasm.js", ServeFile::new("static/worker.sql-wasm.js"))
-        .route_service("/static/sql-wasm.wasm", ServeFile::new("static/sql-wasm.wasm"));
+        .route_service("/static/sql-wasm.wasm", ServeFile::new("static/sql-wasm.wasm"))
+        .route_service("/static/worker.log-parser.js", ServeFile::new("static/worker.log-parser.js"));
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -215,6 +218,41 @@ async fn root() -> RootTemplate {
         apps.insert(app, log_dates);
     }
     RootTemplate { apps: apps }
+}
+
+#[debug_handler]
+async fn stream_log(PathExtractor(params): PathExtractor<(String,String)>, req: Request<Body>) -> Result<Response<Body>, AppError> {
+    //let key = req.headers().get("Authorization");
+    //if key.is_none() {
+        //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
+    //}
+    //let key = key.unwrap().to_str().unwrap();
+    let app = params.0;
+    let file = params.1;
+
+    if app.is_empty() {
+        return Err(AppError(anyhow::anyhow!("App is required")));
+    }
+    if file.is_empty() {
+        return Err(AppError(anyhow::anyhow!("File is required")));
+    }
+
+    let mut app_path: PathBuf = Path::new("").to_path_buf();
+    {
+        let config = CONFIG.lock().unwrap();
+        //if key != config.get("master_key").unwrap() {
+            //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+        //}
+        app_path = Path::new(config.get("storage_path").unwrap()).join(app);
+    }
+
+    let log_path = app_path.join("ledgers").join(file);
+    if !log_path.exists() {
+        return Err(AppError(anyhow::anyhow!("Log file not found")));
+    }
+
+    let log = fs::read_to_string(log_path)?;
+    Ok(Response::new(Body::from(log)))
 }
 
 #[debug_handler]

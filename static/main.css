@@ -266,7 +266,7 @@ body {
         }
     }
 
-    & table-wrapper {
+    & table-component {
         display: block;
         overflow-y: auto;
         width: 100%;
@@ -335,11 +335,25 @@ body {
                         }
                     }
 
-                    &[level="information"] {
+                    &[level="info"] {
                         color: var(--info-text);
 
                         & svg {
                             color: var(--info-icon);
+                        }
+                    }
+                    &[level="warning"] {
+                        color: var(--warning-text);
+
+                        & svg {
+                            color: var(--warning-icon);
+                        }
+                    }
+                    &[level="error"] {
+                        color: var(--error-text);
+
+                        & svg {
+                            color: var(--error-icon);
                         }
                     }
                 }
