@@ -21,7 +21,11 @@ class SQL {
                         for (const row of mixedResults.values){
                             const record = {};
                             for (let i = 0; i < mixedResults.columns.length; i++){
-                                record[mixedResults.columns[i]] = row[i];
+                                if (mixedResults.columns[i] === "custom"){
+                                    record[mixedResults.columns[i]] = JSON.parse(row[i]);
+                                } else {
+                                    record[mixedResults.columns[i]] = row[i];
+                                }
                             }
                             records.push(record);
                         }
@@ -53,8 +57,9 @@ class SQL {
                 line INTEGER,
                 message TEXT,
                 timestamp TEXT,
-                uid TEXT PRIMARY KEY
-            )
+                uid TEXT PRIMARY KEY,
+                custom TEXT
+            );
         `);
         console.log("SQL: tables created");
     }
@@ -88,8 +93,8 @@ class LogParser {
                         case "result":
                             console.log(result);
                             promises.push(sql.send(`
-                                INSERT INTO logs (branch, category, env, file, function, level, line, message, timestamp, uid) 
-                                VALUES ($branch, $category, $env, $file, $function, $level, $line, $message, $timestamp, $uid)
+                                INSERT INTO logs (branch, category, env, file, function, level, line, message, timestamp, uid, custom) 
+                                VALUES ($branch, $category, $env, $file, $function, $level, $line, $message, $timestamp, $uid, $custom)
                             `, {
                                 "$branch": result.branch,
                                 "$category": result.category,
@@ -101,6 +106,7 @@ class LogParser {
                                 "$message": result.message,
                                 "$timestamp": result.timestamp,
                                 "$uid": result.uid,
+                                "$custom": JSON.stringify(result.custom),
                             }));
                             break;
                         case "done":
@@ -133,7 +139,6 @@ class TableComponent extends HTMLElement{
         this.page = 0;
         this.pageSize = 100;
     }
-
     connectedCallback(){
         window.addEventListener("file-selected", async (e) => {
             if (this.loading) return;
@@ -158,12 +163,21 @@ class TableComponent extends HTMLElement{
                 <td col="timestamp">${dayjs(log.timestamp).format("YYYY-MM-DD HH:mm:ss")}</td>
                 <td col="category">${log.category}</td>
                 <td col="message">${log.message}</td>
+                <td col="env">${log.env}</td>
+                <td col="file">${log.file}</td>
+                <td col="function">${log.function}</td>
+                <td col="line">${log.line}</td>
+                <td col="branch">${log.branch}</td>
             </tr>
         `;
     }
 
     async render(){
-        const logs = await sql.send(`SELECT * FROM logs ORDER BY timestamp DESC LIMIT ${this.page * this.pageSize}, ${this.pageSize}`) ?? [];
+        const logs = await sql.send(`
+            SELECT * FROM logs
+            ORDER BY timestamp DESC 
+            LIMIT ${this.page * this.pageSize}, ${this.pageSize}
+        `) ?? [];
         const total = await sql.send("SELECT COUNT(*) as total FROM logs") ?? [];
         const view = html`
             <table>
@@ -173,6 +187,11 @@ class TableComponent extends HTMLElement{
                         <th>Time</th>
                         <th>Category</th>
                         <th>Message</th>
+                        <th>Env</th>
+                        <th>File</th>
+                        <th>Function</th>
+                        <th>Line</th>
+                        <th>Branch</th>
                     </tr>
                 </thead>
                 <tbody>
