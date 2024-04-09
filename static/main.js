@@ -188,6 +188,10 @@ class TableComponent extends HTMLElement{
                                 </div>
                             </td>
                         `;
+                    } else if (column.col === "message") {
+                        return html`
+                            <td col="${column.col}">${log[column.col].substring(0, 100).trim()}${log[column.col].length > 100 ? '...' : ''}</td>
+                        `;
                     } else {
                         return html`
                             <td col="${column.col}">${log[column.col]}</td>
