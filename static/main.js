@@ -103,6 +103,7 @@ class SQL {
         customElements.define("level-button", LevelButton);
         customElements.define("category-button", CategoryButton);
         customElements.define("environment-button", EnvironmentButton);
+        customElements.define("message-search", MessageSearch);
     }
 
     send(sql, params = {}) {this.id++;
@@ -201,6 +202,7 @@ class TableComponent extends HTMLElement{
         this.page = 0;
         this.pageSize = 100;
         this.timezone = localStorage.getItem("timezone") || "UTC";
+        this.search = null;
     }
     connectedCallback(){
         this.columnsEl = document.body.querySelector("table-column-editor");
@@ -232,6 +234,10 @@ class TableComponent extends HTMLElement{
             this.render();
         });
         window.addEventListener("environments-changed", () => {
+            this.render();
+        });
+        window.addEventListener("search-results", (e) => {
+            this.search = e.detail;
             this.render();
         });
         this.render();
@@ -279,21 +285,37 @@ class TableComponent extends HTMLElement{
     }
 
     async render(){
+        if (!this.levelsEl || !this.categoriesEl || !this.environmentsEl) return;
         const levels = await this.levelsEl.getLevels() ?? [];
         const categories = await this.categoriesEl.getCategories() ?? [];
         const environments = await this.environmentsEl.getEnvironments() ?? [];
-        const logs = await sql.queryLogs(`
-            SELECT l.*, c.key, c.value
-            FROM logs l
-            FULL OUTER JOIN custom c ON l.uid = c.logId
-            WHERE l.level IN (${levels.filter(level => level.show).map(level => `'${level.name}'`).join(", ")})
-            AND l.category IN (${categories.filter(cat => cat.show).map(cat => `'${cat.name}'`).join(", ")})
-            AND l.env IN (${environments.filter(env => env.show).map(env => `'${env.name}'`).join(", ")})
-            ORDER BY l.timestamp DESC 
-            LIMIT ${this.page * this.pageSize}, ${this.pageSize}
-        `) ?? [];
+        let logs = [];
+        if (this.search === null){
+            logs = await sql.queryLogs(`
+                SELECT l.*, c.key, c.value
+                FROM logs l
+                FULL OUTER JOIN custom c ON l.uid = c.logId
+                WHERE l.level IN (${levels.filter(level => level.show).map(level => `'${level.name}'`).join(", ")})
+                AND l.category IN (${categories.filter(cat => cat.show).map(cat => `'${cat.name}'`).join(", ")})
+                AND l.env IN (${environments.filter(env => env.show).map(env => `'${env.name}'`).join(", ")})
+                AND l.uid IN (${this.search.map(log => `'${log}'`).join(", ")})
+                ORDER BY l.timestamp DESC 
+                LIMIT ${this.page * this.pageSize}, ${this.pageSize}
+            `) ?? [];
+        } else if (this.search?.length){
+            logs = await sql.queryLogs(`
+                SELECT l.*, c.key, c.value
+                FROM logs l
+                FULL OUTER JOIN custom c ON l.uid = c.logId
+                WHERE l.level IN (${levels.filter(level => level.show).map(level => `'${level.name}'`).join(", ")})
+                AND l.category IN (${categories.filter(cat => cat.show).map(cat => `'${cat.name}'`).join(", ")})
+                AND l.env IN (${environments.filter(env => env.show).map(env => `'${env.name}'`).join(", ")})
+                ORDER BY l.timestamp DESC 
+                LIMIT ${this.page * this.pageSize}, ${this.pageSize}
+            `) ?? [];
+        }
         const total = await sql.send("SELECT COUNT(*) as total FROM logs")?.[0]?.total ?? 0;
-        const columns = await this.columnsEl.getColumns() ?? [];
+        const columns = await this.columnsEl?.getColumns() ?? [];
         const view = html`
             <table>
                 <thead>
@@ -582,4 +604,55 @@ class EnvironmentButton extends HTMLElement {
         render(view, this.menuEl);
         this.removeAttribute("disabled");
     }
+}
+
+class MessageSearch extends HTMLElement {
+    constructor(){
+        super();
+        this.app = "";
+        this.file = "";
+        this.currReqId = 0;
+    }
+
+    connectedCallback(){
+        this.inputEl = this.querySelector("input");
+        this.inputEl.addEventListener("input", this.handleInput);
+        window.addEventListener("file-loaded", async (e) => {
+            this.app = e.detail.app;
+            this.file = e.detail.file;
+            this.removeAttribute("disabled");
+            this.inputEl.value = "";
+            this.inputEl.removeAttribute("disabled");
+        });
+    }
+
+    debounce = (callback, wait) => {
+        let timeoutId = null;
+        return (...args) => {
+            window.clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(() => {
+                callback.apply(null, args);
+            }, wait);
+        };
+    }
+
+    handleInput = this.debounce(async (e) => {
+        const query = e.target.value.trim();
+        if (!query) {
+            window.dispatchEvent(new CustomEvent("search-results", { detail: null }));
+            return;
+        }
+        if (!this.app || !this.file) return;
+        const requestId = ++this.currReqId;
+        const req = await fetch(`/search/${this.app}/${this.file}`, {
+            method: "POST",
+            body: query.trim(),
+        });
+        if (requestId !== this.currReqId) return;
+        if (req.ok){
+            const res = await req.json();
+            console.log("Search results", res);
+            window.dispatchEvent(new CustomEvent("search-results", { detail: res }));
+        }
+    }, 600);
 }

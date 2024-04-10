@@ -6,6 +6,7 @@ use axum::{
     Router,
     response::{IntoResponse, Response},
     extract::Path as PathExtractor,
+    extract::Query,
 };
 use axum_macros::debug_handler;
 use tower_http::services::ServeFile;
@@ -28,6 +29,7 @@ use core::iter::Peekable;
 use uuid::Uuid;
 use chrono::DateTime;
 use lazy_static::lazy_static;
+use tokio::process::Command;
 
 #[macro_use]
 extern crate dotenv_codegen;
@@ -176,6 +178,7 @@ async fn main() {
         .route("/", get(root))
         .route("/logs", post(write_logs))
         .route("/logs/:app/:file", get(stream_log))
+        .route("/search/:app/:file", post(search_logs))
         .route_service("/static/main.js", ServeFile::new("static/main.js"))
         .route_service("/static/main.css", ServeFile::new("static/main.css"))
         .route_service("/static/worker.sql-wasm.js", ServeFile::new("static/worker.sql-wasm.js"))
@@ -253,6 +256,63 @@ async fn stream_log(PathExtractor(params): PathExtractor<(String,String)>, req: 
 
     let log = fs::read_to_string(log_path)?;
     Ok(Response::new(Body::from(log)))
+}
+
+#[debug_handler]
+async fn search_logs(PathExtractor(params): PathExtractor<(String, String)>, req: Request<Body>) -> Result<Response<Body>, AppError> {
+    //let key = req.headers().get("Authorization");
+    //if key.is_none() {
+        //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
+    //}
+    //let key = key.unwrap().to_str().unwrap();
+    let app = params.0.to_lowercase().replace(".", "").replace("/", "");
+    let file = params.1.to_lowercase().replace(".", "").replace("/", "");
+
+    if app.is_empty() {
+        return Err(AppError(anyhow::anyhow!("App is required")));
+    }
+    if file.is_empty() {
+        return Err(AppError(anyhow::anyhow!("File is required")));
+    }
+
+    let body = axum::body::to_bytes(req.into_body(), std::usize::MAX).await?;
+    if body.is_empty() {
+        return Err(AppError(anyhow::anyhow!("Body is empty")));
+    }
+    let query_string = String::from_utf8(body.to_vec())?;
+
+    let mut app_path: PathBuf = Path::new("").to_path_buf();
+    {
+        let config = CONFIG.lock().unwrap();
+        //if key != config.get("master_key").unwrap() {
+            //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+        //}
+        app_path = Path::new(config.get("storage_path").unwrap()).join(app);
+    }
+
+    let log_path = app_path.join("search").join(file);
+    if !log_path.exists() {
+        return Err(AppError(anyhow::anyhow!("Log file not found")));
+    }
+
+    let output = Command::new("grep")
+        .arg("-r")
+        .arg("-l")
+        .arg("-P")
+        .arg("-i")
+        .arg(format!(".*{}.*", query_string.trim()))
+        .arg(log_path.to_str().unwrap())
+        .output()
+        .await?;
+    let error = String::from_utf8(output.stderr)?;
+    if !error.is_empty() {
+        return Err(AppError(anyhow::anyhow!("Failed to search logs")));
+    }
+    let filenames = String::from_utf8(output.stdout)?;
+    let filenames = filenames.split("\n").collect::<Vec<&str>>();
+    let filenames = filenames.iter().filter(|&x| !x.is_empty()).map(|x| x.rsplit_once('/').unwrap().1).collect::<Vec<&str>>();
+    let json_output = serde_json::to_string(&filenames)?;
+    Ok(Response::new(Body::from(json_output)))
 }
 
 #[debug_handler]

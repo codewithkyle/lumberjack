@@ -357,6 +357,11 @@ body {
             border-radius: 6px;
             background-color: var(--white);
 
+            &[disabled] {
+                cursor: not-allowed;
+                opacity: 0.3;
+            }
+
             & input {
                 padding: 0 0.5rem 0 calc(0.5rem + 14px + 0.5rem);
                 display: inline-block;
@@ -369,6 +374,10 @@ body {
 
                 &::placeholder {
                     color: var(--text-lighter);
+                }
+
+                &:disabled {
+                    cursor: not-allowed;
                 }
             }
 
