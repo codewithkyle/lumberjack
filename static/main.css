@@ -370,6 +370,7 @@ body {
                     color: var(--text-lighter);
                     border-bottom: 1px solid var(--border-light);
                     text-transform: capitalize;
+                    white-space: nowrap;
 
                     &:first-child {
                         padding-left: 1rem;

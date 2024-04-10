@@ -19,23 +19,52 @@ class SQL {
             this.db.onmessage = event => {
                 const { id, results } = event.data;
                 if (id in this.queries){
-                    const records = [];
-                    if (results?.length && results[0]?.columns?.length && results[0]?.values?.length){
-                        const mixedResults = results[0];
-                        for (const row of mixedResults.values){
-                            const record = {};
-                            for (let i = 0; i < mixedResults.columns.length; i++){
-                                if (mixedResults.columns[i] === "custom"){
-                                    record[mixedResults.columns[i]] = JSON.parse(row[i]);
-                                } else {
+                    if (id.startsWith("logs-")){
+                        const logs = {};
+                        if (results?.length && results[0]?.columns?.length && results[0]?.values?.length){
+                            const mixedResults = results[0];
+                            for (const row of mixedResults.values){
+                                const log = {
+                                    branch: "",
+                                    category: "",
+                                    env: "",
+                                    file: "",
+                                    function: "",
+                                    level: "",
+                                    line: 0,
+                                    message: "",
+                                    timestamp: "",
+                                    uid: "",
+                                    custom: {},
+                                };
+                                for (let i = 0; i < mixedResults.columns.length; i++){
+                                    if (mixedResults.columns[i] in log){
+                                        log[mixedResults.columns[i]] = row[i];
+                                    } else if (mixedResults.columns[i] === "key" && row[i] !== null) {
+                                        log.custom[row[i]] = row[i + 1];
+                                    }
+                                }
+                                logs[log.uid] = log;
+                            }
+                        }
+                        const records = Object.values(logs) ?? [];
+                        console.log("SQL: query resolved", this.queries[id].sql, this.queries[id].params, records);
+                        this.queries[id].resolve(records);
+                    } else {
+                        const records = [];
+                        if (results?.length && results[0]?.columns?.length && results[0]?.values?.length){
+                            const mixedResults = results[0];
+                            for (const row of mixedResults.values){
+                                const record = {};
+                                for (let i = 0; i < mixedResults.columns.length; i++){
                                     record[mixedResults.columns[i]] = row[i];
                                 }
+                                records.push(record);
                             }
-                            records.push(record);
                         }
+                        console.log("SQL: query resolved", this.queries[id].sql, this.queries[id].params, records);
+                        this.queries[id].resolve(records);
                     }
-                    console.log("SQL: query resolved", this.queries[id].sql, this.queries[id].params, records);
-                    this.queries[id].resolve(records);
                     delete this.queries[id];
                 }
             };
@@ -61,17 +90,35 @@ class SQL {
                 line INTEGER,
                 message TEXT,
                 timestamp TEXT,
-                uid TEXT PRIMARY KEY,
-                custom TEXT
+                uid TEXT PRIMARY KEY
+            );
+            CREATE TABLE custom (
+                logId TEXT,
+                key TEXT,
+                value TEXT
             );
         `);
         customElements.define("table-component", TableComponent);
         customElements.define("table-column-editor", TableColumnEditor);
     }
 
-    send(sql, params = {}) {
+    send(sql, params = {}) {this.id++;
         return new Promise((resolve, reject) => {
-            const id = this.id++;
+            const id = `query-${this.id++}`;
+            sql = sql.replace(/\n/g, "").replace(/\s+/g, " ").trim();
+            this.queries[id] = { resolve, reject, sql, params };
+            this.db.postMessage({
+                id: id,
+                action: "exec",
+                sql: sql,
+                params: params
+            });
+        });
+    }
+
+    queryLogs(sql, params = {}) {
+        return new Promise((resolve, reject) => {
+            const id = `logs-${this.id++}`;
             sql = sql.replace(/\n/g, "").replace(/\s+/g, " ").trim();
             this.queries[id] = { resolve, reject, sql, params };
             this.db.postMessage({
@@ -89,17 +136,15 @@ class LogParser {
     ingest(file) {
         return new Promise(async (resolve, reject) => {
             const worker = new Worker("/static/worker.log-parser.js");
-            console.log("Worker created");
             const promises = [];
             try {
                 worker.onmessage = async (e) => {
                     const { result, type } = e.data;
                     switch (type) {
                         case "result":
-                            console.log(result);
                             promises.push(sql.send(`
-                                INSERT INTO logs (branch, category, env, file, function, level, line, message, timestamp, uid, custom) 
-                                VALUES ($branch, $category, $env, $file, $function, $level, $line, $message, $timestamp, $uid, $custom)
+                                INSERT INTO logs (branch, category, env, file, function, level, line, message, timestamp, uid) 
+                                VALUES ($branch, $category, $env, $file, $function, $level, $line, $message, $timestamp, $uid)
                             `, {
                                 "$branch": result.branch,
                                 "$category": result.category,
@@ -111,8 +156,17 @@ class LogParser {
                                 "$message": result.message,
                                 "$timestamp": result.timestamp,
                                 "$uid": result.uid,
-                                "$custom": JSON.stringify(result.custom),
                             }));
+                            for (const key in result.custom){
+                                promises.push(sql.send(`
+                                    INSERT INTO custom (logId, key, value) 
+                                    VALUES ($logId, $key, $value)
+                                `, {
+                                    "$logId": result.uid,
+                                    "$key": key,
+                                    "$value": result.custom[key],
+                                }));
+                            }
                             break;
                         case "done":
                             worker.terminate();
@@ -192,23 +246,32 @@ class TableComponent extends HTMLElement{
                         return html`
                             <td col="${column.col}">${log[column.col].substring(0, 100).trim()}${log[column.col].length > 100 ? '...' : ''}</td>
                         `;
-                    } else {
+                    } else if (column.col in log) {
                         return html`
                             <td col="${column.col}">${log[column.col]}</td>
                         `;
+                    } else if (column.col in log.custom) {
+                        return html`
+                            <td col="${column.col}">${log.custom[column.col]}</td>
+                        `;
                     }
+                    return html`
+                        <td col="${column.col}"></td>
+                    `;
                 })}
             </tr>
         `;
     }
 
     async render(){
-        const logs = await sql.send(`
-            SELECT * FROM logs
-            ORDER BY timestamp DESC 
+        const logs = await sql.queryLogs(`
+            SELECT l.*, c.key, c.value
+            FROM logs l
+            FULL OUTER JOIN custom c ON l.uid = c.logId
+            ORDER BY l.timestamp DESC 
             LIMIT ${this.page * this.pageSize}, ${this.pageSize}
         `) ?? [];
-        const total = await sql.send("SELECT COUNT(*) as total FROM logs") ?? [];
+        const total = await sql.send("SELECT COUNT(*) as total FROM logs")?.[0]?.total ?? 0;
         const columns = await this.columnsEl.getColumns() ?? [];
         const view = html`
             <table>
@@ -228,7 +291,7 @@ class TableComponent extends HTMLElement{
             </table>
         `;
         render(view, this);
-        window.dispatchEvent(new CustomEvent("table-rendered", { detail: { page: this.page, total: total[0].total, logs: logs.length } }));
+        window.dispatchEvent(new CustomEvent("table-rendered", { detail: { page: this.page, total: total, logs: logs.length } }));
     }
 }
 
@@ -256,6 +319,10 @@ class TableColumnEditor extends HTMLElement {
             columns = Object.keys(columns[0]);
         }
         if (!columns.length) return;
+        let customColumns = await sql.send("SELECT DISTINCT key FROM custom");
+        for (let i = 0; i < customColumns.length; i++){
+            columns.push(customColumns[i].key);
+        }
         for (let i = 0; i < columns.length; i++){
             const index = cachedColumns.findIndex(col => col.col === columns[i]);
             if (index === -1) {
