@@ -179,6 +179,7 @@ async fn main() {
         .route("/logs", post(write_logs))
         .route("/logs/:app/:file", get(stream_log))
         .route("/search/:app/:file", post(search_logs))
+        .route("/size/:app/:file", get(log_size))
         .route_service("/static/main.js", ServeFile::new("static/main.js"))
         .route_service("/static/main.css", ServeFile::new("static/main.css"))
         .route_service("/static/worker.sql-wasm.js", ServeFile::new("static/worker.sql-wasm.js"))
@@ -256,6 +257,44 @@ async fn stream_log(PathExtractor(params): PathExtractor<(String,String)>, req: 
 
     let log = fs::read_to_string(log_path)?;
     Ok(Response::new(Body::from(log)))
+}
+
+#[debug_handler]
+async fn log_size(PathExtractor(params): PathExtractor<(String, String)>) -> Result<Response<Body>, AppError> {
+    //let key = req.headers().get("Authorization");
+    //if key.is_none() {
+        //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
+    //}
+    //let key = key.unwrap().to_str().unwrap();
+    let app = params.0.to_lowercase().replace(".", "").replace("/", "");
+    let file = params.1.to_lowercase().replace(".", "").replace("/", "");
+
+    if app.is_empty() {
+        return Err(AppError(anyhow::anyhow!("App is required")));
+    }
+    if file.is_empty() {
+        return Err(AppError(anyhow::anyhow!("File is required")));
+    }
+
+    let mut app_path: PathBuf = Path::new("").to_path_buf();
+    {
+        let config = CONFIG.lock().unwrap();
+        //if key != config.get("master_key").unwrap() {
+            //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+        //}
+        app_path = Path::new(config.get("storage_path").unwrap()).join(app);
+    }
+
+    let log_path = app_path.join("ledgers").join(format!("{}.jsonl", file));
+    if !log_path.exists() {
+        return Err(AppError(anyhow::anyhow!("Log file not found")));
+    }
+
+    let metadata = fs::metadata(log_path)?;
+    let size = metadata.len() as f64;
+    let size_mb:f64 = size / 1024.0 / 1024.0;
+    let size = format!("{:.2} MB", size_mb);
+    Ok(Response::new(Body::from(size.to_string())))
 }
 
 #[debug_handler]

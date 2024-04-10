@@ -104,6 +104,7 @@ class SQL {
         customElements.define("category-button", CategoryButton);
         customElements.define("environment-button", EnvironmentButton);
         customElements.define("message-search", MessageSearch);
+        customElements.define("file-size", FileSize);
     }
 
     send(sql, params = {}) {this.id++;
@@ -677,4 +678,29 @@ class MessageSearch extends HTMLElement {
             window.dispatchEvent(new CustomEvent("search-results", { detail: res }));
         }
     }, 600);
+}
+
+class FileSize extends HTMLElement {
+    constructor(){
+        super();
+        this.app = "";
+        this.file = "";
+    }
+
+    connectedCallback(){
+        window.addEventListener("file-loaded", async (e) => {
+            this.app = e.detail.app;
+            this.file = e.detail.file;
+            this.render();
+        });
+    }
+
+    async render(){
+        if (!this.app || !this.file) return;
+        const req = await fetch(`/size/${this.app}/${this.file}`);
+        if (req.ok){
+            const size = await req.text();
+            this.innerHTML = size;
+        }
+    }
 }
