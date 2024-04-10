@@ -191,7 +191,7 @@
         </table-filters>
         <table-component></table-component>
         <table-pagination
-            x-data="{ page: 1, total: 0, logs: 0 }"
+            x-data="{ page: 0, total: 0, logs: 0 }"
             x-on:table-rendered.window="page = $event.detail.page; total = $event.detail.total; logs = $event.detail.logs;"
         >
             <button 

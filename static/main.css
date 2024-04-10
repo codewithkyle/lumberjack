@@ -43,7 +43,7 @@ body {
         color: var(--text-dark);
 
         & header {
-            border-color: var(--border-dark);
+            border-color: var(--bg-dark);
 
             & file-selector {
                 border-color: var(--border-dark);
@@ -64,6 +64,21 @@ body {
                 & svg {
                     color: var(--icon-dark);
                 }
+
+                & file-menu {
+                    border-color: var(--border-dark);
+                    background-color: var(--bg-dark);
+
+                    & button {
+                        color: var(--text-dark);
+
+                        &:hover,
+                        &:focus-visible {
+                            color: var(--text-light);
+                            background-color: hsl(var(--white-hsl) / 0.05);
+                        }
+                    }
+                }
             }
 
             & button {
@@ -73,6 +88,152 @@ body {
                 &:focus-visible {
                     color: var(--icon-dark-hover);
                 }
+            }
+
+            & .label {
+                color: var(--text-darker);
+            }
+
+            & table-settings {
+                & settings-menu {
+                    background-color: var(--bg-dark);
+                    border-color: var(--bg-dark);
+
+                    & label {
+                        color: var(--text-dark);
+                    }
+
+                    & select {
+                        color: var(--text-dark);
+                        background-color: hsl(var(--white-hsl) / 0.05);
+                        border-color: var(--border-dark);
+                    }
+
+                    & table-column-editor {
+                        & li {
+                            color: var(--text-dark);
+
+                            & svg {
+                                color: var(--icon-dark);
+                            }
+
+                            & label {
+                                color: var(--text-dark);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        & table-filters {
+            border-color: var(--border-dark);
+            background-color: var(--bg-dark);
+
+            & environment-button,
+            & category-button,
+            & level-button {
+                border-color: var(--border-dark);
+                box-shadow: none;
+                color: var(--text-dark);
+
+                &[disabled] {
+                    color: var(--text-darker);
+                }
+
+                & svg {
+                    color: var(--icon-dark);
+                }
+
+                & ul {
+                    background-color: var(--bg-dark);
+                    border-color: var(--border-dark);
+
+                    & li label {
+                        color: var(--text-dark);
+                    }
+                }
+            }
+
+            & message-search {
+                border-color: var(--border-dark);
+                background-color: transparent;
+
+                & input {
+                    color: var(--text-dark);
+                    background-color: transparent;
+
+                    &::placeholder {
+                        color: var(--text-dark);
+                    }
+                }
+
+                & svg {
+                    color: var(--icon-dark);
+                }
+            }
+        }
+
+        & table-component {
+            background-color: var(--bg-dark);
+
+            & table {
+                & thead {
+                    background-color: var(--bg-dark);
+
+                    & th {
+                        color: var(--white);
+                        border-bottom: 1px solid var(--border-dark);
+                    }
+                }
+
+                & tbody {
+                    & tr {
+                        background-color: hsl(var(--slate-950-hsl) / 0.5);
+
+                        & td {
+                            border-bottom: 1px solid var(--border-dark);
+                            color: var(--white);
+
+                            &[col="category"],
+                            &[col="file"],
+                            &[col="function"],
+                            &[col="line"],
+                            &[col="env"] {
+                                color: var(--text-darker);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        & table-pagination {
+            border-color: var(--border-dark);
+            background-color: var(--bg-dark);
+
+            & button {
+                border-color: var(--border-dark);
+                color: var(--text-dark);
+                background-color: transparent;
+
+                &:hover,
+                &:focus-visible {
+                    background-color: hsl(var(--white-hsl) / 0.05);
+                    color: var(--text-light);
+                }
+
+                &:disabled {
+                    color: var(--text-darker);
+                }
+
+                & svg {
+                    color: var(--icon-dark);
+                }
+            }
+
+            & span {
+                color: var(--text-darker);
             }
         }
     }
