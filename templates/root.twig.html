@@ -72,7 +72,7 @@
             <span class="label">Log File:</span>
             <file-selector
                 x-data="{ open: false, app: '', file: '' }"
-                x-on:click.away="open = false"
+                x-on:click.outside="open = false"
                 x-on:keydown.escape.window="open = false"
                 x-on:click.stop="open = !open"
                 x-on:file-selected.window="app = $event.detail.app; file = $event.detail.file"
@@ -105,7 +105,7 @@
             </button>
             <table-settings
                 x-data="{ open: false, theme: localStorage.getItem('theme') || 'light', timezone: localStorage.getItem('timezone') || 'UTC' }"
-                x-on:click.away="open = false"
+                x-on:click.outside="open = false"
                 x-on:keydown.escape.window="open = false"
             >
                 <button
@@ -136,18 +136,54 @@
             </table-settings>
         </header>
         <table-filters>
-            <button>
+            <level-button 
+                disabled 
+                tabindex="0" 
+                role="button"
+                x-data="{ open: false }"
+                x-on:click.outside="open = false"
+                x-on:keydown.escape.window="open = false"
+                x-on:click="open = !open"
+            >
                 <span>Level</span>
                 <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l4 -4l4 4" /><path d="M16 15l-4 4l-4 -4" /></svg>
-            </button>
-            <button>
+                <ul 
+                    x-show="open"
+                    x-on:click.stop
+                ></ul>
+            </level-button>
+            <category-button 
+                disabled 
+                tabindex="0" 
+                role="button"
+                x-data="{ open: false }"
+                x-on:click.outside="open = false"
+                x-on:keydown.escape.window="open = false"
+                x-on:click="open = !open"
+            >
                 <span>Category</span>
                 <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l4 -4l4 4" /><path d="M16 15l-4 4l-4 -4" /></svg>
-            </button>
-            <button>
+                <ul 
+                    x-show="open"
+                    x-on:click.stop
+                ></ul>
+            </category-button>
+            <environment-button 
+                disabled 
+                tabindex="0" 
+                role="button"
+                x-data="{ open: false }"
+                x-on:click.outside="open = false"
+                x-on:keydown.escape.window="open = false"
+                x-on:click="open = !open"
+            >
                 <span>Environment</span>
                 <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l4 -4l4 4" /><path d="M16 15l-4 4l-4 -4" /></svg>
-            </button>
+                <ul 
+                    x-show="open"
+                    x-on:click.stop
+                ></ul>
+            </environment-button>
             <message-search>
                 <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
                 <input type="text" placeholder="Search for a message...">

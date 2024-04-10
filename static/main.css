@@ -282,7 +282,9 @@ body {
         padding: 1rem;
         width: 100%;
 
-        & button {
+        & environment-button,
+        & category-button,
+        & level-button {
             height: 36px;
             padding: 0 0.5rem 0 0.75rem;
             border: 1px solid var(--border-light);
@@ -295,6 +297,12 @@ body {
             display: inline-flex;
             align-items: center;
 
+            &[disabled] {
+                cursor: not-allowed;
+                opacity: 0.3;
+                box-shadow: none;
+            }
+
             & span{
                 display: inline-block;
                 margin-right: 0.5rem;
@@ -305,6 +313,39 @@ body {
                 height: 14px;
                 display: inline-block;
                 color: var(--icon-light);
+            }
+
+            & ul {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                background-color: var(--white);
+                border: 1px solid var(--border-light);
+                border-radius: 8px;
+                box-shadow: var(--shadow-black-md);
+                z-index: 2000;
+                padding: 0.5rem;
+                list-style: none;
+                margin: 0.5rem 0 0 0;
+                min-width: 152px;
+                cursor: auto;
+
+                & li {
+                    display: flex;
+                    align-items: center;
+                    flex-flow: row nowrap;
+                    padding: 0.5rem;
+
+                    & label {
+                        display: inline-block;
+                        font-size: var(--font-sm);
+                        color: var(--text-light);
+                        font-weight: var(--font-regular);
+                        margin-left: 0.5rem;
+                        text-transform: capitalize;
+                        white-space: nowrap;
+                    }
+                }
             }
         }
 

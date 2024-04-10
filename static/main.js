@@ -100,6 +100,9 @@ class SQL {
         `);
         customElements.define("table-component", TableComponent);
         customElements.define("table-column-editor", TableColumnEditor);
+        customElements.define("level-button", LevelButton);
+        customElements.define("category-button", CategoryButton);
+        customElements.define("environment-button", EnvironmentButton);
     }
 
     send(sql, params = {}) {this.id++;
@@ -201,6 +204,9 @@ class TableComponent extends HTMLElement{
     }
     connectedCallback(){
         this.columnsEl = document.body.querySelector("table-column-editor");
+        this.levelsEl = document.body.querySelector("level-button");
+        this.categoriesEl = document.body.querySelector("category-button");
+        this.environmentsEl = document.body.querySelector("environment-button");
         window.addEventListener("file-selected", async (e) => {
             if (this.loading) return;
             this.loading = true;
@@ -217,6 +223,15 @@ class TableComponent extends HTMLElement{
             this.render();
         });
         window.addEventListener("columns-changed", () => {
+            this.render();
+        });
+        window.addEventListener("levels-changed", () => {
+            this.render();
+        });
+        window.addEventListener("categories-changed", () => {
+            this.render();
+        });
+        window.addEventListener("environments-changed", () => {
             this.render();
         });
         this.render();
@@ -264,10 +279,16 @@ class TableComponent extends HTMLElement{
     }
 
     async render(){
+        const levels = await this.levelsEl.getLevels() ?? [];
+        const categories = await this.categoriesEl.getCategories() ?? [];
+        const environments = await this.environmentsEl.getEnvironments() ?? [];
         const logs = await sql.queryLogs(`
             SELECT l.*, c.key, c.value
             FROM logs l
             FULL OUTER JOIN custom c ON l.uid = c.logId
+            WHERE l.level IN (${levels.filter(level => level.show).map(level => `'${level.name}'`).join(", ")})
+            AND l.category IN (${categories.filter(cat => cat.show).map(cat => `'${cat.name}'`).join(", ")})
+            AND l.env IN (${environments.filter(env => env.show).map(env => `'${env.name}'`).join(", ")})
             ORDER BY l.timestamp DESC 
             LIMIT ${this.page * this.pageSize}, ${this.pageSize}
         `) ?? [];
@@ -343,7 +364,6 @@ class TableColumnEditor extends HTMLElement {
         const index = this.columns.findIndex(col => col.col === column);
         this.columns[index].show = show;
         localStorage.setItem(`${this.app}-${this.file}-columns`, JSON.stringify(this.columns));
-        this.render();
         window.dispatchEvent(new CustomEvent("columns-changed"));
     }
 
@@ -377,5 +397,189 @@ class TableColumnEditor extends HTMLElement {
                 window.dispatchEvent(new CustomEvent("columns-changed"));
             }
         });
+    }
+}
+
+class LevelButton extends HTMLElement {
+    constructor(){
+        super();
+        this.app = "";
+        this.file = "";
+        this.levels = [];
+    }
+
+    connectedCallback(){
+        this.menuEl = this.querySelector("ul");
+        window.addEventListener("file-loaded", async (e) => {
+            this.app = e.detail.app;
+            this.file = e.detail.file;
+            this.render();
+        });
+    }
+
+    async getLevels(){
+        let levels = await sql.send("SELECT DISTINCT level FROM logs") ?? [];
+        let cachedLevels = localStorage.getItem(`${this.app}-${this.file}-levels`) || "[]";
+        cachedLevels = JSON.parse(cachedLevels);
+        for (let i = 0; i < levels.length; i++){
+            const index = cachedLevels.findIndex(l => l.name === levels[i].level);
+            if (index === -1){
+                cachedLevels.push({
+                    name: levels[i].level,
+                    show: true,
+                });
+            }
+        }
+        this.levels = cachedLevels;
+        localStorage.setItem(`${this.app}-${this.file}-levels`, JSON.stringify(this.levels));
+        return this.levels;
+    }
+
+    handleChange = (e) => {
+        e.stopImmediatePropagation();
+        const level = e.target.name;
+        const show = e.target.checked;
+        const index = this.levels.findIndex(l => l.name === level);
+        this.levels[index].show = show;
+        localStorage.setItem(`${this.app}-${this.file}-levels`, JSON.stringify(this.levels));
+        window.dispatchEvent(new CustomEvent("levels-changed"));
+    }
+
+    async render() {
+        if (!this.app || !this.file) return;
+        const levels = await this.getLevels();
+        const view = html`
+            ${levels.map(level => html`
+                <li>
+                    <input @change=${this.handleChange} type="checkbox" id="${level.name}" name="${level.name}" ?checked=${level.show}>
+                    <label for="${level.name}">${level.name}</label>
+                </li>
+            `)}
+        `;
+        render(view, this.menuEl);
+        this.removeAttribute("disabled");
+    }
+}
+
+class CategoryButton extends HTMLElement {
+    constructor(){
+        super();
+        this.app = "";
+        this.file = "";
+        this.categories = [];
+    }
+
+    connectedCallback(){
+        this.menuEl = this.querySelector("ul");
+        window.addEventListener("file-loaded", async (e) => {
+            this.app = e.detail.app;
+            this.file = e.detail.file;
+            this.render();
+        });
+    }
+
+    async getCategories(){
+        let categories = await sql.send("SELECT DISTINCT category FROM logs") ?? [];
+        let cachedCategories = localStorage.getItem(`${this.app}-${this.file}-categories`) || "[]";
+        cachedCategories = JSON.parse(cachedCategories);
+        for (let i = 0; i < categories.length; i++){
+            const index = cachedCategories.findIndex(c => c.name === categories[i].category);
+            if (index === -1){
+                cachedCategories.push({
+                    name: categories[i].category,
+                    show: true,
+                });
+            }
+        }
+        this.categories = cachedCategories;
+        localStorage.setItem(`${this.app}-${this.file}-categories`, JSON.stringify(this.categories));
+        return this.categories;
+    }
+
+    handleChange = (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const category = e.target.name;
+        const show = e.target.checked;
+        const index = this.categories.findIndex(c => c.name === category);
+        this.categories[index].show = show;
+        localStorage.setItem(`${this.app}-${this.file}-categories`, JSON.stringify(this.categories));
+        window.dispatchEvent(new CustomEvent("categories-changed"));
+    }
+
+    async render() {
+        if (!this.app || !this.file) return;
+        const categories = await this.getCategories();
+        const view = html`
+            ${categories.map(cat => html`
+                <li>
+                    <input @change=${this.handleChange} type="checkbox" id="${cat.name}" name="${cat.name}" ?checked=${cat.show}>
+                    <label for="${cat.name}">${cat.name}</label>
+                </li>
+            `)}
+        `;
+        render(view, this.menuEl);
+        this.removeAttribute("disabled");
+    }
+}
+
+class EnvironmentButton extends HTMLElement {
+    constructor(){
+        super();
+        this.app = "";
+        this.file = "";
+        this.environments = [];
+    }
+
+    connectedCallback(){
+        this.menuEl = this.querySelector("ul");
+        window.addEventListener("file-loaded", async (e) => {
+            this.app = e.detail.app;
+            this.file = e.detail.file;
+            this.render();
+        });
+    }
+
+    async getEnvironments(){
+        let envs = await sql.send("SELECT DISTINCT env FROM logs") ?? [];
+        let cachedEnvs = localStorage.getItem(`${this.app}-${this.file}-environments`) || "[]";
+        cachedEnvs = JSON.parse(cachedEnvs);
+        for (let i = 0; i < envs.length; i++){
+            const index = cachedEnvs.findIndex(e => e.name === envs[i].env);
+            if (index === -1){
+                cachedEnvs.push({
+                    name: envs[i].env,
+                    show: true,
+                });
+            }
+        }
+        this.environments = cachedEnvs;
+        localStorage.setItem(`${this.app}-${this.file}-environments`, JSON.stringify(this.environments));
+        return this.environments;
+    }
+
+    handleChange = (e) => {
+        e.stopImmediatePropagation();
+        const env = e.target.name;
+        const show = e.target.checked;
+        const index = this.environments.findIndex(e => e.name === env);
+        this.environments[index].show = show;
+        localStorage.setItem(`${this.app}-${this.file}-environments`, JSON.stringify(this.environments));
+        window.dispatchEvent(new CustomEvent("environments-changed"));
+    }
+
+    async render() {
+        if (!this.app || !this.file) return;
+        const envs = await this.getEnvironments();
+        const view = html`
+            ${envs.map(env => html`
+                <li>
+                    <input @change=${this.handleChange} type="checkbox" id="${env.name}" name="${env.name}" ?checked=${env.show}>
+                    <label for="${env.name}">${env.name}</label>
+                </li>
+            `)}
+        `;
+        render(view, this.menuEl);
+        this.removeAttribute("disabled");
     }
 }
