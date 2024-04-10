@@ -479,7 +479,9 @@ body {
                         white-space: nowrap;
                     }
 
-                    &[level="info"] {
+                    &[level="info"],
+                    &[level="debug"],
+                    &[level="notice"]{
                         color: var(--info-text);
 
                         & svg {
@@ -493,7 +495,10 @@ body {
                             color: var(--warning-icon);
                         }
                     }
-                    &[level="error"] {
+                    &[level="error"],
+                    &[level="critical"],
+                    &[level="alert"],
+                    &[level="emergency"]{
                         color: var(--error-text);
 
                         & svg {
