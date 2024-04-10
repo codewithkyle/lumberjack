@@ -1,0 +1,206 @@
+[Informational] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Example
+Custom Key: hi mom!
+Message:
+This is the an example message.
+It can span many lines.
+---[EOL]---
+[Error] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Example
+File: /home/codewithkyle/my-app/services/DatabaseService.php
+Function: query()
+Line: 69
+Message:
+This is the an example message.
+It can span many lines.
+---[EOL]---
+[Warning] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Example
+Custom Key: hi mom!
+Message:
+This is the an example message.
+It can span many lines.
+---[EOL]---
+[Notice] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Example
+File: /home/codewithkyle/my-app/services/DatabaseService.php
+Function: query()
+Line: 69
+Message:
+This is the an example message.
+It can span many lines.
+---[EOL]---
+[Informational] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Production
+Custom Key: hello world!
+Message:
+This is another example message.
+---[EOL]---
+[Error] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Production
+File: /home/codewithkyle/my-app/services/NotificationService.php
+Function: send()
+Line: 42
+Message:
+This is another example message.
+It can span many lines.
+---[EOL]---
+[Warning] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Production
+Custom Key: hello world!
+Message:
+This is another example message.
+---[EOL]---
+[Notice] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Production
+File: /home/codewithkyle/my-app/services/NotificationService.php
+Function: send()
+Line: 42
+Message:
+This is another example message.
+It can span many lines.
+---[EOL]---
+[Informational] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Development
+Custom Key: hello world!
+Message:
+This is another example message.
+---[EOL]---
+[Error] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Development
+File: /home/codewithkyle/my-app/services/EmailService.php
+Function: send()
+Line: 28
+Message:
+This is another example message.
+It can span many lines.
+---[EOL]---
+[Warning] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Development
+Custom Key: hello world!
+Message:
+This is another example message.
+---[EOL]---
+[Notice] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Development
+File: /home/codewithkyle/my-app/services/EmailService.php
+Function: send()
+Line: 28
+Message:
+This is another example message.
+It can span many lines.
+---[EOL]---
+[Informational] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Testing
+Custom Key: hello world!
+Message:
+This is another example message.
+---[EOL]---
+[Error] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Testing
+File: /home/codewithkyle/my-app/services/LoggingService.php
+Function: log()
+Line: 12
+Message:
+This is another example message.
+It can span many lines.
+---[EOL]---
+[Warning] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Testing
+Custom Key: hello world!
+Message:
+This is another example message.
+---[EOL]---
+[Notice] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Testing
+File: /home/codewithkyle/my-app/services/LoggingService.php
+Function: log()
+Line: 12
+Message:
+This is another example message.
+It can span many lines.
+---[EOL]---
+[Informational] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Security
+Custom Key: hello world!
+Message:
+This is another example message.
+---[EOL]---
+[Error] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Security
+File: /home/codewithkyle/my-app/services/SecurityService.php
+Function: validate()
+Line: 8
+Message:
+This is another example message.
+It can span many lines.
+---[EOL]---
+[Warning] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Security
+Custom Key: hello world!
+Message:
+This is another example message.
+---[EOL]---
+[Notice] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Security
+File: /home/codewithkyle/my-app/services/SecurityService.php
+Function: validate()
+Line: 8
+Message:
+This is another example message.
+It can span many lines.
+---[EOL]---
+[Informational] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Deployment
+Custom Key: hello world!
+Message:
+This is another example message.
+---[EOL]---
+[Error] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Deployment
+File: /home/codewithkyle/my-app/services/DeploymentService.php
+Function: deploy()
+Line: 55
+Message:
+This is another example message.
+It can span many lines.
+---[EOL]---
+[Warning] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Deployment
+Custom Key: hello world!
+Message:
+This is another example message.
+---[EOL]---
+[Notice] - 2024-04-06T08:48:24Z
+Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
+Category: Deployment
+File: /home/codewithkyle/my-app/services/DeploymentService.php
+Function: deploy()
+Line: 55
+Message:
+This is another example message.
+It can span many lines.
+---[EOL]---

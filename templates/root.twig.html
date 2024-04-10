@@ -194,10 +194,16 @@
             x-data="{ page: 1, total: 0, logs: 0 }"
             x-on:table-rendered.window="page = $event.detail.page; total = $event.detail.total; logs = $event.detail.logs;"
         >
-            <button disabled>
+            <button 
+                :disabled="page === 0"
+                x-on:click="$dispatch('table-pagination', { page: page - 1 })"
+            >
                 <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6" /></svg>
             </button>
-            <button>
+            <button 
+                :disabled="total <= page * 100 + 100"
+                x-on:click="$dispatch('table-pagination', { page: page + 1 })"
+            >
                 <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
             </button>
             <span x-text="total > 0 ? `${page * 100 + 1} - ${page * 100 + logs} of ${total}` : ''"></span>

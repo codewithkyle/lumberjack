@@ -240,6 +240,10 @@ class TableComponent extends HTMLElement{
             this.search = e.detail;
             this.render();
         });
+        window.addEventListener("table-pagination", (e) => {
+            this.page = e.detail.page;
+            this.render();
+        });
         this.render();
     }
 
@@ -285,36 +289,53 @@ class TableComponent extends HTMLElement{
     }
 
     async render(){
-        if (!this.levelsEl || !this.categoriesEl || !this.environmentsEl) return;
         const levels = await this.levelsEl.getLevels() ?? [];
         const categories = await this.categoriesEl.getCategories() ?? [];
         const environments = await this.environmentsEl.getEnvironments() ?? [];
         let logs = [];
-        if (this.search === null){
-            logs = await sql.queryLogs(`
-                SELECT l.*, c.key, c.value
-                FROM logs l
-                FULL OUTER JOIN custom c ON l.uid = c.logId
+        let total = 0;
+        if (this.search?.length){
+            const where = ` 
                 WHERE l.level IN (${levels.filter(level => level.show).map(level => `'${level.name}'`).join(", ")})
                 AND l.category IN (${categories.filter(cat => cat.show).map(cat => `'${cat.name}'`).join(", ")})
                 AND l.env IN (${environments.filter(env => env.show).map(env => `'${env.name}'`).join(", ")})
                 AND l.uid IN (${this.search.map(log => `'${log}'`).join(", ")})
-                ORDER BY l.timestamp DESC 
-                LIMIT ${this.page * this.pageSize}, ${this.pageSize}
-            `) ?? [];
-        } else if (this.search?.length){
+            `;
             logs = await sql.queryLogs(`
                 SELECT l.*, c.key, c.value
                 FROM logs l
                 FULL OUTER JOIN custom c ON l.uid = c.logId
-                WHERE l.level IN (${levels.filter(level => level.show).map(level => `'${level.name}'`).join(", ")})
-                AND l.category IN (${categories.filter(cat => cat.show).map(cat => `'${cat.name}'`).join(", ")})
-                AND l.env IN (${environments.filter(env => env.show).map(env => `'${env.name}'`).join(", ")})
+                ${where}
                 ORDER BY l.timestamp DESC 
                 LIMIT ${this.page * this.pageSize}, ${this.pageSize}
             `) ?? [];
+            total = (await sql.send(`
+                SELECT COUNT(*) as total
+                FROM logs l
+                FULL OUTER JOIN custom c ON l.uid = c.logId
+                ${where}
+            `))?.[0]?.total ?? 0;
+        } else if (this.search === null){
+            const where = `
+                WHERE l.level IN (${levels.filter(level => level.show).map(level => `'${level.name}'`).join(", ")})
+                AND l.category IN (${categories.filter(cat => cat.show).map(cat => `'${cat.name}'`).join(", ")})
+                AND l.env IN (${environments.filter(env => env.show).map(env => `'${env.name}'`).join(", ")})
+            `;
+            logs = await sql.queryLogs(`
+                SELECT l.*, c.key, c.value
+                FROM logs l
+                FULL OUTER JOIN custom c ON l.uid = c.logId
+                ${where}
+                ORDER BY l.timestamp DESC 
+                LIMIT ${this.page * this.pageSize}, ${this.pageSize}
+            `) ?? [];
+            total = (await sql.send(`
+                SELECT COUNT(*) as total
+                FROM logs l
+                FULL OUTER JOIN custom c ON l.uid = c.logId
+                ${where}
+            `))?.[0]?.total ?? 0;
         }
-        const total = await sql.send("SELECT COUNT(*) as total FROM logs")?.[0]?.total ?? 0;
         const columns = await this.columnsEl?.getColumns() ?? [];
         const view = html`
             <table>
@@ -334,6 +355,7 @@ class TableComponent extends HTMLElement{
             </table>
         `;
         render(view, this);
+        console.log("Table rendered", this.page, total, logs.length);
         window.dispatchEvent(new CustomEvent("table-rendered", { detail: { page: this.page, total: total, logs: logs.length } }));
     }
 }
