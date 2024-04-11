@@ -212,13 +212,22 @@ class TableComponent extends HTMLElement{
         window.addEventListener("file-selected", async (e) => {
             if (this.loading) return;
             this.loading = true;
+            this.app = e.detail.app;
+            this.file = e.detail.file;
             await sql.resetTables();
-            await parser.ingest(`/logs/${e.detail.app}/${e.detail.file}`);
+            await parser.ingest(`/logs/${this.app}/${this.file}`);
             this.loading = false;
-            document.title = `${e.detail.file}.log · ${e.detail.app} · Lumberjack`;
             window.dispatchEvent(new CustomEvent("file-loaded", {
                 detail: e.detail,
             }));
+            this.render();
+        });
+        window.addEventListener("table-refresh", async () => {
+            if (this.loading) return;
+            this.loading = true;
+            await sql.resetTables();
+            await parser.ingest(`/logs/${this.app}/${this.file}`);
+            this.loading = false;
             this.render();
         });
         window.addEventListener("timezone-changed", (e) => {
@@ -290,6 +299,11 @@ class TableComponent extends HTMLElement{
     }
 
     async render(){
+        if (!this.app || !this.file) {
+            document.title = "Lumberjack";
+            return;
+        }
+        document.title = `${this.file} · ${this.app} · Lumberjack`;
         const levels = await this.levelsEl.getLevels() ?? [];
         const categories = await this.categoriesEl.getCategories() ?? [];
         const environments = await this.environmentsEl.getEnvironments() ?? [];
