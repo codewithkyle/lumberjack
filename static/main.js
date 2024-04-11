@@ -260,7 +260,7 @@ class TableComponent extends HTMLElement{
     renderRow(log, columns){
         let timestamp;
         if (this.timezone == "local"){
-            timestamp = dayjs(log.timestamp).local().format("YYYY-MM-DD HH:mm:ss");
+            timestamp = dayjs(log.timestamp).format("YYYY-MM-DD HH:mm:ss");
         } else {
             timestamp = dayjs(log.timestamp).utc().format("YYYY-MM-DD HH:mm:ss");
         }
@@ -280,6 +280,10 @@ class TableComponent extends HTMLElement{
                     } else if (column.col === "message") {
                         return html`
                             <td col="${column.col}">${log[column.col].substring(0, 100).trim()}${log[column.col].length > 100 ? '...' : ''}</td>
+                        `;
+                    } else if (column.col === "timestamp") {
+                        return html`
+                            <td col="${column.col}">${timestamp}</td>
                         `;
                     } else if (column.col in log) {
                         return html`
