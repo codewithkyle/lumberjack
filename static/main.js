@@ -396,7 +396,7 @@ class TableColumnEditor extends HTMLElement {
     }
 
     async getColumns(){
-        let cachedColumns = localStorage.getItem(`${this.app}-${this.file}-columns`) || "[]";
+        let cachedColumns = localStorage.getItem(`${this.app}-columns`) || "[]";
         cachedColumns = JSON.parse(cachedColumns);
         let columns = await sql.send("SELECT * FROM logs LIMIT 1");
         if (columns.length){
@@ -417,7 +417,7 @@ class TableColumnEditor extends HTMLElement {
             }
         }
         this.columns = cachedColumns;
-        localStorage.setItem(`${this.app}-${this.file}-columns`, JSON.stringify(this.columns));
+        localStorage.setItem(`${this.app}-columns`, JSON.stringify(this.columns));
         return cachedColumns;
     }
 
@@ -426,7 +426,7 @@ class TableColumnEditor extends HTMLElement {
         const show = e.target.checked;
         const index = this.columns.findIndex(col => col.col === column);
         this.columns[index].show = show;
-        localStorage.setItem(`${this.app}-${this.file}-columns`, JSON.stringify(this.columns));
+        localStorage.setItem(`${this.app}-columns`, JSON.stringify(this.columns));
         window.dispatchEvent(new CustomEvent("columns-changed"));
     }
 
@@ -456,7 +456,7 @@ class TableColumnEditor extends HTMLElement {
                         show: li.querySelector("input").checked,
                     };
                 });
-                localStorage.setItem(`${this.app}-${this.file}-columns`, JSON.stringify(this.columns));
+                localStorage.setItem(`${this.app}-columns`, JSON.stringify(this.columns));
                 window.dispatchEvent(new CustomEvent("columns-changed"));
             }
         });
@@ -482,7 +482,7 @@ class LevelButton extends HTMLElement {
 
     async getLevels(){
         let levels = await sql.send("SELECT DISTINCT level FROM logs") ?? [];
-        let cachedLevels = localStorage.getItem(`${this.app}-${this.file}-levels`) || "[]";
+        let cachedLevels = localStorage.getItem(`${this.app}-levels`) || "[]";
         cachedLevels = JSON.parse(cachedLevels);
         for (let i = 0; i < levels.length; i++){
             const index = cachedLevels.findIndex(l => l.name === levels[i].level);
@@ -494,7 +494,7 @@ class LevelButton extends HTMLElement {
             }
         }
         this.levels = cachedLevels;
-        localStorage.setItem(`${this.app}-${this.file}-levels`, JSON.stringify(this.levels));
+        localStorage.setItem(`${this.app}-levels`, JSON.stringify(this.levels));
         return this.levels;
     }
 
@@ -504,7 +504,7 @@ class LevelButton extends HTMLElement {
         const show = e.target.checked;
         const index = this.levels.findIndex(l => l.name === level);
         this.levels[index].show = show;
-        localStorage.setItem(`${this.app}-${this.file}-levels`, JSON.stringify(this.levels));
+        localStorage.setItem(`${this.app}-levels`, JSON.stringify(this.levels));
         window.dispatchEvent(new CustomEvent("levels-changed"));
     }
 
@@ -543,7 +543,7 @@ class CategoryButton extends HTMLElement {
 
     async getCategories(){
         let categories = await sql.send("SELECT DISTINCT category FROM logs") ?? [];
-        let cachedCategories = localStorage.getItem(`${this.app}-${this.file}-categories`) || "[]";
+        let cachedCategories = localStorage.getItem(`${this.app}-categories`) || "[]";
         cachedCategories = JSON.parse(cachedCategories);
         for (let i = 0; i < categories.length; i++){
             const index = cachedCategories.findIndex(c => c.name === categories[i].category);
@@ -555,7 +555,7 @@ class CategoryButton extends HTMLElement {
             }
         }
         this.categories = cachedCategories;
-        localStorage.setItem(`${this.app}-${this.file}-categories`, JSON.stringify(this.categories));
+        localStorage.setItem(`${this.app}-categories`, JSON.stringify(this.categories));
         return this.categories;
     }
 
@@ -566,7 +566,7 @@ class CategoryButton extends HTMLElement {
         const show = e.target.checked;
         const index = this.categories.findIndex(c => c.name === category);
         this.categories[index].show = show;
-        localStorage.setItem(`${this.app}-${this.file}-categories`, JSON.stringify(this.categories));
+        localStorage.setItem(`${this.app}-categories`, JSON.stringify(this.categories));
         window.dispatchEvent(new CustomEvent("categories-changed"));
     }
 
@@ -605,7 +605,7 @@ class EnvironmentButton extends HTMLElement {
 
     async getEnvironments(){
         let envs = await sql.send("SELECT DISTINCT env FROM logs") ?? [];
-        let cachedEnvs = localStorage.getItem(`${this.app}-${this.file}-environments`) || "[]";
+        let cachedEnvs = localStorage.getItem(`${this.app}-environments`) || "[]";
         cachedEnvs = JSON.parse(cachedEnvs);
         for (let i = 0; i < envs.length; i++){
             const index = cachedEnvs.findIndex(e => e.name === envs[i].env);
@@ -617,7 +617,7 @@ class EnvironmentButton extends HTMLElement {
             }
         }
         this.environments = cachedEnvs;
-        localStorage.setItem(`${this.app}-${this.file}-environments`, JSON.stringify(this.environments));
+        localStorage.setItem(`${this.app}-environments`, JSON.stringify(this.environments));
         return this.environments;
     }
 
@@ -627,7 +627,7 @@ class EnvironmentButton extends HTMLElement {
         const show = e.target.checked;
         const index = this.environments.findIndex(e => e.name === env);
         this.environments[index].show = show;
-        localStorage.setItem(`${this.app}-${this.file}-environments`, JSON.stringify(this.environments));
+        localStorage.setItem(`${this.app}-environments`, JSON.stringify(this.environments));
         window.dispatchEvent(new CustomEvent("environments-changed"));
     }
 
