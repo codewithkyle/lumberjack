@@ -68,8 +68,6 @@ class SQL {
                     delete this.queries[id];
                 }
             };
-
-            this.createTables();
         };
         this.db.onerror = e => console.log("Worker error: ", e);
         this.db.postMessage({
@@ -98,13 +96,14 @@ class SQL {
                 value TEXT
             );
         `);
-        customElements.define("table-component", TableComponent);
-        customElements.define("table-column-editor", TableColumnEditor);
-        customElements.define("level-button", LevelButton);
-        customElements.define("category-button", CategoryButton);
-        customElements.define("environment-button", EnvironmentButton);
-        customElements.define("message-search", MessageSearch);
-        customElements.define("file-size", FileSize);
+    }
+
+    async resetTables() {
+        await this.send(`
+            DROP TABLE logs;
+            DROP TABLE custom;
+        `);
+        await this.createTables();
     }
 
     send(sql, params = {}) {this.id++;
@@ -213,6 +212,7 @@ class TableComponent extends HTMLElement{
         window.addEventListener("file-selected", async (e) => {
             if (this.loading) return;
             this.loading = true;
+            await sql.resetTables();
             await parser.ingest(`/logs/${e.detail.app}/${e.detail.file}`);
             this.loading = false;
             document.title = `${e.detail.file}.log · ${e.detail.app} · Lumberjack`;
@@ -704,3 +704,11 @@ class FileSize extends HTMLElement {
         }
     }
 }
+
+customElements.define("file-size", FileSize);
+customElements.define("level-button", LevelButton);
+customElements.define("category-button", CategoryButton);
+customElements.define("environment-button", EnvironmentButton);
+customElements.define("message-search", MessageSearch);
+customElements.define("table-component", TableComponent);
+customElements.define("table-column-editor", TableColumnEditor);

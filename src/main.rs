@@ -471,8 +471,7 @@ fn create_log(lines: &Vec<String>) -> Log {
     };
 
     let first_line = lines.next().unwrap();
-    let mut first_line_parts = first_line.split_whitespace();
-    let level = first_line_parts.next().unwrap();
+    let (level, timestamp) = first_line.split_once("-").unwrap();
     match level.to_uppercase().trim() {
         "[EMERGENCY]" => new_log.level = ErrorLevel::Emergency,
         "[ALERT]" => new_log.level = ErrorLevel::Alert,
@@ -484,7 +483,7 @@ fn create_log(lines: &Vec<String>) -> Log {
         "[DEBUG]" => new_log.level = ErrorLevel::Debug,
         _ => new_log.level = ErrorLevel::Unknown,
     }
-    new_log.timestamp = first_line_parts.skip(1).next().unwrap_or("").to_string();
+    new_log.timestamp = timestamp.trim().to_string();
 
     loop {
         let binding = String::from("---[EOL]---");

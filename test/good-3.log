@@ -1,12 +1,12 @@
-[Informational] - 2024-04-06T08:48:24Z
+[Informational] - 2024-04-11T08:48:24Z
 Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
 Category: Example
 Custom Key: hi mom!
 Message:
 This is the an example message.
 It can span many lines.
----[EOL]--
-[Error] - 2024-04-06T08:48:24Z
+---[EOL]---
+[Error] - 2024-04-11T08:48:24Z
 Branch: 7c96197c-6ecb-4b3b-885a-d4ee97fe87e9
 Category: Example
 File: /home/codewithkyle/my-app/services/DatabaseService.php
@@ -15,14 +15,14 @@ Line: 69
 Message:
 This is the an example message.
 It can span many lines.
----[EOL]--
-[Informational] - 2024-04-06T08:49:32Z
+---[EOL]---
+[Informational] - 2024-04-11T08:49:32Z
 Branch: 2c1d4e3a-96d3-4f4e-a6fc-abc123def456
 Category: Debug
 Message:
 Debug message here.
----[EOL]--
-[Error] - 2024-04-06T08:49:32Z
+---[EOL]---
+[Error] - 2024-04-11T08:49:32Z
 Branch: 2c1d4e3a-96d3-4f4e-a6fc-abc123def456
 Category: Debug
 File: /home/codewithkyle/my-app/services/Logger.php
@@ -30,228 +30,228 @@ Function: logError()
 Line: 27
 Message:
 An error occurred in the logging system.
----[EOL]--
-[Informational] - 2024-04-06T08:50:01Z
+---[EOL]---
+[Informational] - 2024-04-11T08:50:01Z
 Category: Info
 Custom Key: custom data
 Message:
 This is an informational message with custom data.
----[EOL]--
-[Error] - 2024-04-06T08:50:01Z
+---[EOL]---
+[Error] - 2024-04-11T08:50:01Z
 Category: Error
 Message:
 An error occurred.
----[EOL]--
-[Informational] - 2024-04-06T08:51:13Z
+---[EOL]---
+[Informational] - 2024-04-11T08:51:13Z
 Category: Info
 Custom Key: custom data
 Message:
 Another informational message with custom data.
----[EOL]--
-[Error] - 2024-04-06T08:51:13Z
+---[EOL]---
+[Error] - 2024-04-11T08:51:13Z
 Category: Error
 Message:
 Another error occurred.
----[EOL]--
-[Informational] - 2024-04-06T08:52:45Z
+---[EOL]---
+[Informational] - 2024-04-11T08:52:45Z
 Branch: abc123
 Category: Info
 Custom Key: custom data
 Message:
 Yet another informational message with custom data.
----[EOL]--
-[Error] - 2024-04-06T08:52:45Z
+---[EOL]---
+[Error] - 2024-04-11T08:52:45Z
 Branch: abc123
 Category: Error
 Message:
 Yet another error occurred.
----[EOL]--
-[Informational] - 2024-04-06T08:53:57Z
+---[EOL]---
+[Informational] - 2024-04-11T08:53:57Z
 Category: Info
 Custom Key: custom data
 Message:
 One more informational message with custom data.
----[EOL]--
-[Error] - 2024-04-06T08:53:57Z
+---[EOL]---
+[Error] - 2024-04-11T08:53:57Z
 Category: Error
 Message:
 One more error occurred.
----[EOL]--
-[Informational] - 2024-04-06T08:54:19Z
+---[EOL]---
+[Informational] - 2024-04-11T08:54:19Z
 Category: Info
 Message:
 An informational message without custom data.
----[EOL]--
-[Error] - 2024-04-06T08:54:19Z
+---[EOL]---
+[Error] - 2024-04-11T08:54:19Z
 Category: Error
 Message:
 An error occurred without custom data.
----[EOL]--
-[Informational] - 2024-04-06T08:55:02Z
+---[EOL]---
+[Informational] - 2024-04-11T08:55:02Z
 Branch: xyz789
 Category: Info
 Custom Key: custom data
 Message:
 An informational message with custom data and a branch.
----[EOL]--
-[Error] - 2024-04-06T08:55:02Z
+---[EOL]---
+[Error] - 2024-04-11T08:55:02Z
 Branch: xyz789
 Category: Error
 Custom Key: custom data
 Message:
 An error occurred with custom data and a branch.
----[EOL]--
-[Informational] - 2024-04-06T08:55:29Z
+---[EOL]---
+[Informational] - 2024-04-11T08:55:29Z
 Category: Info
 Message:
 An informational message without custom data and a branch.
----[EOL]--
-[Error] - 2024-04-06T08:55:29Z
+---[EOL]---
+[Error] - 2024-04-11T08:55:29Z
 Category: Error
 Message:
 An error occurred without custom data and a branch.
----[EOL]--
-[Informational] - 2024-04-06T08:56:05Z
+---[EOL]---
+[Informational] - 2024-04-11T08:56:05Z
 Branch: 123abc
 Category: Info
 Custom Key: custom data
 Message:
 An informational message with custom data and another branch.
----[EOL]--
-[Error] - 2024-04-06T08:56:05Z
+---[EOL]---
+[Error] - 2024-04-11T08:56:05Z
 Branch: 123abc
 Category: Error
 Custom Key: custom data
 Message:
 An error occurred with custom data and another branch.
----[EOL]--
-[Informational] - 2024-04-06T08:56:33Z
+---[EOL]---
+[Informational] - 2024-04-11T08:56:33Z
 Category: Info
 Message:
 An informational message without custom data and another branch.
----[EOL]--
-[Error] - 2024-04-06T08:56:33Z
+---[EOL]---
+[Error] - 2024-04-11T08:56:33Z
 Category: Error
 Message:
 An error occurred without custom data and another branch.
----[EOL]--
-[Informational] - 2024-04-06T08:57:12Z
+---[EOL]---
+[Informational] - 2024-04-11T08:57:12Z
 Branch: abc123xyz
 Category: Info
 Custom Key: custom data
 Message:
 An informational message with custom data and a branch.
----[EOL]--
-[Error] - 2024-04-06T08:57:12Z
+---[EOL]---
+[Error] - 2024-04-11T08:57:12Z
 Branch: abc123xyz
 Category: Error
 Custom Key: custom data
 Message:
 An error occurred with custom data and a branch.
----[EOL]--
-[Informational] - 2024-04-06T08:57:45Z
+---[EOL]---
+[Informational] - 2024-04-11T08:57:45Z
 Category: Info
 Message:
 An informational message without custom data and a branch.
----[EOL]--
-[Error] - 2024-04-06T08:57:45Z
+---[EOL]---
+[Error] - 2024-04-11T08:57:45Z
 Category: Error
 Message:
 An error occurred without custom data and a branch.
----[EOL]--
-[Informational] - 2024-04-06T08:58:29Z
+---[EOL]---
+[Informational] - 2024-04-11T08:58:29Z
 Branch: xyz123
 Category: Info
 Custom Key: custom data
 Message:
 An informational message with custom data and another branch.
----[EOL]--
-[Error] - 2024-04-06T08:58:29Z
+---[EOL]---
+[Error] - 2024-04-11T08:58:29Z
 Branch: xyz123
 Category: Error
 Custom Key: custom data
 Message:
 An error occurred with custom data and another branch.
----[EOL]--
-[Informational] - 2024-04-06T08:59:17Z
+---[EOL]---
+[Informational] - 2024-04-11T08:59:17Z
 Category: Info
 Message:
 An informational message without custom data and another branch.
----[EOL]--
-[Error] - 2024-04-06T08:59:17Z
+---[EOL]---
+[Error] - 2024-04-11T08:59:17Z
 Category: Error
 Message:
 An error occurred without custom data and another branch.
----[EOL]--
-[Informational] - 2024-04-06T08:59:58Z
+---[EOL]---
+[Informational] - 2024-04-11T08:59:58Z
 Branch: 456xyz
 Category: Info
 Custom Key: custom data
 Message:
 An informational message with custom data and a final branch.
----[EOL]--
-[Error] - 2024-04-06T08:59:58Z
+---[EOL]---
+[Error] - 2024-04-11T08:59:58Z
 Branch: 456xyz
 Category: Error
 Custom Key: custom data
 Message:
 An error occurred with custom data and a final branch.
----[EOL]--
-[Informational] - 2024-04-06T09:00:40Z
+---[EOL]---
+[Informational] - 2024-04-11T09:00:40Z
 Category: Info
 Message:
 An informational message without custom data and a final branch.
----[EOL]--
-[Error] - 2024-04-06T09:00:40Z
+---[EOL]---
+[Error] - 2024-04-11T09:00:40Z
 Category: Error
 Message:
 An error occurred without custom data and a final branch.
----[EOL]--
-[Informational] - 2024-04-06T09:01:25Z
+---[EOL]---
+[Informational] - 2024-04-11T09:01:25Z
 Branch: final
 Category: Info
 Custom Key: custom data
 Message:
 The final informational message with custom data and a branch.
----[EOL]--
-[Error] - 2024-04-06T09:01:25Z
+---[EOL]---
+[Error] - 2024-04-11T09:01:25Z
 Branch: final
 Category: Error
 Custom Key: custom data
 Message:
 The final error occurred with custom data and a branch.
----[EOL]--
-[Informational] - 2024-04-06T09:02:11Z
+---[EOL]---
+[Informational] - 2024-04-11T09:02:11Z
 Category: Info
 Message:
 The final informational message without custom data and a branch.
----[EOL]--
-[Error] - 2024-04-06T09:02:11Z
+---[EOL]---
+[Error] - 2024-04-11T09:02:11Z
 Category: Error
 Message:
 The final error occurred without custom data and a branch.
----[EOL]--
-[Informational] - 2024-04-06T09:02:59Z
+---[EOL]---
+[Informational] - 2024-04-11T09:02:59Z
 Branch: the-end
 Category: Info
 Custom Key: custom data
 Message:
 This is the end of the logs with custom data and a branch.
----[EOL]--
-[Error] - 2024-04-06T09:02:59Z
+---[EOL]---
+[Error] - 2024-04-11T09:02:59Z
 Branch: the-end
 Category: Error
 Custom Key: custom data
 Message:
 This is the end of the errors with custom data and a branch.
----[EOL]--
-[Informational] - 2024-04-06T09:03:50Z
+---[EOL]---
+[Informational] - 2024-04-11T09:03:50Z
 Category: Info
 Message:
 This is the end of the logs without custom data and a branch.
----[EOL]--
-[Error] - 2024-04-06T09:03:50Z
+---[EOL]---
+[Error] - 2024-04-11T09:03:50Z
 Category: Error
-Message:
+Message:skid jack
 This is the end of the errors without custom data and a branch.
----[EOL]--
+---[EOL]---
