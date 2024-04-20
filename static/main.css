@@ -236,6 +236,20 @@ body {
                 color: var(--text-darker);
             }
         }
+
+        & window-component {
+            background-color: var(--bg-dark);
+            border-color: var(--border-dark);
+
+            & .header {
+                background-color: var(--bg-darker);
+                color: var(--white);
+
+                & svg {
+                    color: var(--text-darker);
+                }
+            }
+        }
     }
 
     & header {
