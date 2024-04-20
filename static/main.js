@@ -257,13 +257,77 @@ class TableComponent extends HTMLElement{
         this.render();
     }
 
-    handleRowClick = (e) => {
+    handleRowClick = async (e) => {
         const target = e.currentTarget;
+        const log = (await sql.queryLogs(`
+                SELECT l.*, c.key, c.value
+                FROM logs l
+                FULL OUTER JOIN custom c ON l.uid = c.logId
+                WHERE l.uid = '${target.dataset.uid}'
+            `))?.[0] ?? null;
+        if (log === null) return;
+        let timestamp;
+        if (this.timezone == "local"){
+            timestamp = dayjs(log.timestamp).format("YYYY-MM-DD HH:mm:ss");
+        } else {
+            timestamp = dayjs(log.timestamp).utc().format("YYYY-MM-DD HH:mm:ss");
+        }
         const windowEl = document.body.querySelector(`window-component[window="${target.dataset.uid}"]`) || new WindowComponent({
-            name: `${target.dataset.level} - ${target.dataset.timestamp}`,
-            width: 400,
-            height: 600,
+            name: `${log.level} - ${timestamp}`,
+            width: 550,
+            height: 400,
             handle: target.dataset.uid,
+            view: html`
+                <div class="log">
+                    <dl grid="rows 1 gap-1.5" class="mb-1.5">
+                        <div grid="columns 2 gap-1.5">
+                            <div>
+                                <dt>Level</dt>
+                                <dd>${log.level}</dd>
+                            </div>
+                            <div>
+                                <dt>Timestamp</dt>
+                                <dd>${timestamp}</dd>
+                            </div>
+                        </div>
+                        <div grid="columns 2 gap-1.5">
+                            <div>
+                                <dt>Category</dt>
+                                <dd>${log.category}</dd>
+                            </div>
+                            <div>
+                                <dt>Env</dt>
+                                <dd>${log.env}</dd>
+                            </div>
+                        </div>
+                        ${log.file.length ? 
+                            html`
+                                <div>
+                                    <dt>File</dt>
+                                    <dd>${log.file}</dd>
+                                </div>
+                            ` 
+                            : ""
+                        }
+                        ${log.function.length || log.line !== null ? html`
+                                <div grid="columns 2 gap-1.5">
+                                    <div>
+                                        <dt>Function</dt>
+                                        <dd>${log.function}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Line</dt>
+                                        <dd>${log.line || ""}</dd>
+                                    </div>
+                                </div>
+                            ` 
+                            : ""
+                        }
+                    </dl>
+                    <h4>Message</h4>
+                    <p>${log.message}</p>
+                </div>
+            `
         });
         if (!windowEl.isConnected){
             document.body.appendChild(windowEl);
@@ -746,17 +810,6 @@ class WindowComponent extends HTMLElement {
         this.minWidth = settings?.minWidth ?? 100;
         this.minHeight = settings?.minHeight ?? 50;
 
-        const savedX = localStorage.getItem(`${this.handle}-x`);
-        const savedY = localStorage.getItem(`${this.handle}-y`);
-        this.x = savedX ? parseInt(savedX) : 0;
-        this.y = savedY ? parseInt(savedY) : 28;
-        if (savedX == null){
-            localStorage.setItem(`${this.handle}-x`, this.x.toFixed(0).toString());
-        }
-        if (savedY == null){
-            localStorage.setItem(`${this.handle}-y`, this.y.toFixed(0).toString());
-        }
-
         const savedWidth = localStorage.getItem(`${this.handle}-w`);
         const savedHeight = localStorage.getItem(`${this.handle}-h`);
         if (savedWidth != null && savedHeight != null){
@@ -771,6 +824,17 @@ class WindowComponent extends HTMLElement {
         }
         if (savedHeight == null){
             localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
+        }
+
+        const savedX = localStorage.getItem(`${this.handle}-x`);
+        const savedY = localStorage.getItem(`${this.handle}-y`);
+        this.x = savedX ? parseInt(savedX) : Math.max((window.innerWidth - this.w) / 2, 0);
+        this.y = savedY ? parseInt(savedY) : Math.max((window.innerHeight - this.h) / 2, 0);
+        if (savedX == null){
+            localStorage.setItem(`${this.handle}-x`, this.x.toFixed(0).toString());
+        }
+        if (savedY == null){
+            localStorage.setItem(`${this.handle}-y`, this.y.toFixed(0).toString());
         }
 
         this.enableControls = settings?.enableControls ?? true;

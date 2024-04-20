@@ -249,6 +249,25 @@ body {
                     color: var(--text-darker);
                 }
             }
+
+            & .container {
+                & .log {
+                    & dl {
+                        & dt {
+                            color: var(--text-darker);
+                        }
+                        & dd {
+                            color: var(--white);
+                        }
+                    }
+                    & h4 {
+                        color: var(--text-darker);
+                    }
+                    & p {
+                        color: var(--text-white);
+                    }
+                }
+            }
         }
     }
 
@@ -847,5 +866,40 @@ window-component{
         width: 100%;
         display: block;
         overflow-y: scroll;
+
+        & .log {
+            display: block;
+            width: 100%;
+            padding: 1.5rem;
+
+            & dl {
+                width: 100%;
+
+                & dt {
+                    font-size: var(--font-xs);
+                    color: var(--text-lighter);
+                    margin-bottom: 0.5rem;
+                }
+
+                & dd {
+                    font-weight: var(--font-medium);
+                    font-size: var(--font-sm);
+                    color: var(--text-light);
+                }
+            }
+
+            & h4 {
+                display: block;
+                font-size: var(--font-xs);
+                font-weight: var(--font-regular);
+                color: var(--text-lighter);
+                margin-bottom: 0.5rem;
+            }
+
+            & p {
+                font-size: var(--font-sm);
+                color: var(--text-light);
+            }
+        }
     }
 }
