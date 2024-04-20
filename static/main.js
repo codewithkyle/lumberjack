@@ -257,6 +257,21 @@ class TableComponent extends HTMLElement{
         this.render();
     }
 
+    handleRowClick = (e) => {
+        const target = e.currentTarget;
+        const windowEl = document.body.querySelector(`window-component[window="${target.dataset.uid}"]`) || new WindowComponent({
+            name: `${target.dataset.level} - ${target.dataset.timestamp}`,
+            width: 400,
+            height: 600,
+            handle: target.dataset.uid,
+        });
+        if (!windowEl.isConnected){
+            document.body.appendChild(windowEl);
+        } else {
+            windowEl.focus();
+        }
+    }
+
     renderRow(log, columns){
         let timestamp;
         if (this.timezone == "local"){
@@ -265,7 +280,7 @@ class TableComponent extends HTMLElement{
             timestamp = dayjs(log.timestamp).utc().format("YYYY-MM-DD HH:mm:ss");
         }
         return html`
-            <tr>
+            <tr tabindex="0" @click=${this.handleRowClick} data-uid="${log["uid"]}" data-level="${log["level"]}" data-timestamp="${timestamp}">
                 ${columns.map(column => {
                     if (!column.show) return "";
                     if (column.col === "level"){
@@ -723,6 +738,392 @@ class FileSize extends HTMLElement {
     }
 }
 
+class WindowComponent extends HTMLElement {
+    constructor(settings){
+        super();
+        this.handle = settings?.handle ?? settings.name.toLowerCase().trim().replace(/\s+/g, "-");
+
+        this.minWidth = settings?.minWidth ?? 100;
+        this.minHeight = settings?.minHeight ?? 50;
+
+        const savedX = localStorage.getItem(`${this.handle}-x`);
+        const savedY = localStorage.getItem(`${this.handle}-y`);
+        this.x = savedX ? parseInt(savedX) : 0;
+        this.y = savedY ? parseInt(savedY) : 28;
+        if (savedX == null){
+            localStorage.setItem(`${this.handle}-x`, this.x.toFixed(0).toString());
+        }
+        if (savedY == null){
+            localStorage.setItem(`${this.handle}-y`, this.y.toFixed(0).toString());
+        }
+
+        const savedWidth = localStorage.getItem(`${this.handle}-w`);
+        const savedHeight = localStorage.getItem(`${this.handle}-h`);
+        if (savedWidth != null && savedHeight != null){
+            this.w = parseInt(savedWidth);
+            this.h = parseInt(savedHeight);
+        } else {
+            this.w = settings?.width ?? this.minWidth;
+            this.h = settings?.height ?? this.minHeight;
+        }
+        if (savedWidth == null){
+            localStorage.setItem(`${this.handle}-w`, this.w.toFixed(0).toString());
+        }
+        if (savedHeight == null){
+            localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
+        }
+
+        this.enableControls = settings?.enableControls ?? true;
+
+        this.resize();
+
+        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        this.view = settings.view;
+        this.name = settings.name;
+        this.moving = false;
+        this.size =  "normal";
+    }
+
+    connectedCallback() {
+        this.render();
+        this.focus();
+        window.addEventListener("mouseup", this.stopMove, { capture: true, passive: true });
+        window.addEventListener("mousemove", this.move, { capture: true, passive: true });
+        window.addEventListener("touchend", this.stopMove, { capture: true, passive: true });
+        window.addEventListener("touchmove", this.move, { capture: true, passive: true });
+        window.addEventListener("resize", this.debounce(this.resizeEvent, 300), { capture: true, passive: true });
+    }
+
+    debounce = (callback, wait) => {
+        let timeoutId = null;
+        return (...args) => {
+            window.clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(() => {
+                callback.apply(null, args);
+            }, wait);
+        };
+    }
+
+    resize(){
+        if (this.x >= window.innerWidth){
+            this.x = window.innerWidth - this.w;
+        }
+        if (this.y >= window.innerHeight){
+            this.y = window.innerHeight - this.h;
+        }
+    }
+
+    resizeEvent = (e) => {
+        this.resize();
+        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
+    }
+
+    focus() {
+        document.body.querySelectorAll("window-component").forEach((window) => {
+            window.blur();
+        });
+        this.style.zIndex = "1001";
+    }
+
+    blur() {
+       this.style.zIndex = "1000";
+    }
+
+    maximize() {
+        this.moving = false;
+        this.x = 0;
+        this.y = 0;
+        this.w = window.innerWidth;
+        this.h = window.innerHeight;
+        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        this.size = "maximized";
+        this.render();
+        this.focus();
+    }
+
+    minimize() {
+        this.moving = false;
+        this.h = 28;
+        this.w = parseInt(localStorage.getItem(`${this.handle}-w`));
+        this.size = "minimized";
+        this.render();
+        this.focus();
+    }
+
+    windowed() {
+        this.moving = false;
+        this.x = parseInt(localStorage.getItem(`${this.handle}-x`));
+        this.y = parseInt(localStorage.getItem(`${this.handle}-y`));
+        this.w = parseInt(localStorage.getItem(`${this.handle}-w`));
+        this.h = parseInt(localStorage.getItem(`${this.handle}-h`));
+        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        this.size = "normal";
+        this.render();
+        this.focus();
+    }
+
+    close(){
+        this.remove();
+    }
+
+    save(){
+        const bounds = this.getBoundingClientRect();
+        this.x = bounds.x;
+        this.y = bounds.y;
+        this.w = bounds.width;
+        if (this.w < this.minWidth){
+            this.w = this.minWidth;
+        }
+        this.h = bounds.height;
+        if (this.h < this.minHeight){
+            this.h = this.minHeight;
+        }
+        localStorage.setItem(`${this.handle}-w`, this.w.toFixed(0).toString());
+        localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
+        if (this.size !== "maximized"){
+            localStorage.setItem(`${this.handle}-x`, this.x.toFixed(0).toString());
+            localStorage.setItem(`${this.handle}-y`, this.y.toFixed(0).toString());
+        }
+    }
+
+    move = (e) => {
+        if (this.moving){
+            let x;
+            let y;
+            if (window.TouchEvent && e instanceof TouchEvent){
+                x = e.touches[0].clientX;
+                y = e.touches[0].clientY;
+            } else {
+                x = e.clientX;
+                y = e.clientY;
+            }
+            const bounds = this.getBoundingClientRect();
+            let diffX = bounds.x - x - this.localX;
+            let diffY = bounds.y - y - this.localY;
+            this.x -= diffX;
+            this.y -= diffY;
+            this.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        }
+    }
+
+    stopMove = (e) => {
+        if (this.moving){
+            this.save();
+        }
+        this.moving = false;
+    }
+
+    startMove = (e) => {
+        if (this.size === "maximized"){
+            return;
+        }
+        this.moving = true;
+        let x;
+        let y;
+        if (window.TouchEvent && e instanceof TouchEvent){
+            x = e.touches[0].clientX;
+            y = e.touches[0].clientY;
+        } else {
+            x = e.clientX;
+            y = e.clientY;
+        }
+        const bounds = this.getBoundingClientRect();
+        this.localX = bounds.x - x;
+        this.localY = bounds.y - y;
+        this.focus();
+    }
+
+    handleMinimize = (e) => {
+        this.minimize();
+    }
+
+    handleMaximize = (e) => {
+        switch(this.size){
+            case "normal":
+                this.maximize();
+                break;
+            default:
+                this.windowed();
+                break;
+        }
+    }
+
+    handleClose = (e) => {
+        this.close();
+    }
+
+    noop = (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+    }
+
+    renderMaximizeIcon() {
+        switch(this.size){
+            case "normal":
+                return html`
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-square" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                    </svg>
+                `;
+            default:
+                return html`
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copy" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="8" y="8" width="12" height="12" rx="2"></rect>
+                        <path d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2"></path>
+                    </svg>
+                `;
+        }
+    }
+
+    renderContent() {
+        let out;
+        if (this.size !== "minimized"){
+            out = html`
+                <div class="container">
+                    ${this.view}
+                </div>
+            `;
+        } else {
+            out = "";
+        }
+        return out;
+    }
+
+    renderControls() {
+        if (this.enableControls){
+            return html`
+                <div class="h-full" flex="row nowrap items-center">
+                    <button @click=${this.handleMinimize} @mousedown=${this.noop} sfx="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-minus" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                    <button @click=${this.handleMaximize} @mousedown=${this.noop} sfx="button">
+                        ${this.renderMaximizeIcon()}
+                    </button>
+                    <button @click=${this.handleClose} @mousedown=${this.noop} sfx="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-x" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        } else {
+            return "";
+        }
+    }
+
+    render() {
+        this.style.width = `${this.w}px`;
+        this.style.height = `${this.h}px`;
+        this.setAttribute("window", this.handle);
+        this.setAttribute("size", this.size);
+        const view = html`
+            <div class="header" flex="row nowrap items-center justify-between" @mousedown=${this.startMove} @touchstart=${this.startMove}>
+                <h3 class="font-sm px-0.5">${this.name}</h3>
+                ${this.renderControls()}
+            </div>
+            ${this.renderContent()}
+            ${new ResizeHandle(this, "x", this.minWidth, this.minHeight)}
+            ${new ResizeHandle(this, "y", this.minWidth, this.minHeight)}
+            ${new ResizeHandle(this, "both", this.minWidth, this.minHeight)}
+        `;
+        render(view, this);
+    }
+}
+
+class ResizeHandle extends HTMLElement {
+    constructor(target, axis, minWidth = 411, minHeight = 231){
+        super();
+        this.resizing = false;
+        this.pos1 = 0;
+        this.pos2 = 0;
+        this.pos3 = 0;
+        this.pos4 = 0;
+        this.target = target;
+        this.axis = axis;
+        this.minWidth = minWidth;
+        this.minHeight = minHeight;
+    }
+
+    handleMouseDown = (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        this.resizing = true;
+        if (e instanceof MouseEvent){
+            this.pos3 = e.clientX;
+            this.pos4 = e.clientY;
+        } else if (window.TouchEvent && e instanceof TouchEvent){
+            this.pos3 = e.touches[0].clientX;
+            this.pos4 = e.touches[0].clientY;
+        }
+    }
+
+    handleMouseUp = () => {
+        if (this.resizing){
+            this.target?.save();
+        }
+        this.resizing = false;
+    }
+
+    handleMouseMove = (e) => {
+        if (this.resizing){
+            if (e instanceof MouseEvent){
+                this.pos1 = this.pos3 - e.clientX;
+                this.pos2 = this.pos4 - e.clientY;
+                this.pos3 = e.clientX;
+                this.pos4 = e.clientY;
+            }else if (window.TouchEvent && e instanceof TouchEvent){
+                this.pos1 = this.pos3 - e.touches[0].clientX;
+                this.pos2 = this.pos4 - e.touches[0].clientY;
+                this.pos3 = e.touches[0].clientX;
+                this.pos4 = e.touches[0].clientY;
+            }
+            const bounds = this.target.getBoundingClientRect();
+            let height = bounds.height - this.pos2;
+            let width = bounds.width - this.pos1;
+            if (height < this.minHeight){
+                height = this.minHeight;
+            } else if (height > window.innerHeight - 28){
+                height = window.innerHeight - 28;
+            }
+            if (width < this.minWidth){
+                width = this.minWidth;
+            } else if (width > window.innerWidth){
+                width = window.innerWidth;
+            }
+            switch (this.axis){
+                case "x":
+                    this.target.style.width = `${width}px`;
+                    break;
+                case "y":
+                    this.target.style.height = `${height}px`;
+                    break;
+                default:
+                    this.target.style.width = `${width}px`;
+                    this.target.style.height = `${height}px`;
+                    break;
+            }
+        }
+    }
+
+    connectedCallback() {
+        window.addEventListener("mouseup", this.handleMouseUp, { capture: true, passive: true });
+        window.addEventListener("mousemove", this.handleMouseMove, { capture: true, passive: true });
+        window.addEventListener("touchend", this.handleMouseUp, { capture: true, passive: true });
+        window.addEventListener("touchmove", this.handleMouseMove, { capture: true, passive: true });
+        this.addEventListener("mousedown", this.handleMouseDown);
+        this.addEventListener("touchstart", this.handleMouseDown);
+    }
+}
+
+customElements.define("resize-handle", ResizeHandle);
+customElements.define("window-component", WindowComponent);
 customElements.define("file-size", FileSize);
 customElements.define("level-button", LevelButton);
 customElements.define("category-button", CategoryButton);
