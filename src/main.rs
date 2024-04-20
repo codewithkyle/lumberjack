@@ -1,47 +1,46 @@
+use anyhow::{Error, Result};
+use askama_axum::Template;
 use axum::{
-    body::{Body, Bytes},
+    body::Body,
+    extract::Path as PathExtractor,
     http::{Request, StatusCode},
+    response::{IntoResponse, Response},
     routing::get,
     routing::post,
     Router,
-    response::{IntoResponse, Response},
-    extract::Path as PathExtractor,
-    extract::Query,
 };
 use axum_macros::debug_handler;
-use tower_http::services::ServeFile;
-use serde::Serialize;
-use askama_axum::Template;
-use rand::{distributions::Alphanumeric, thread_rng};
-use rand::Rng;
+use chrono::DateTime;
+use core::iter::Peekable;
+use lazy_static::lazy_static;
 use owo_colors::OwoColorize;
+use rand::Rng;
+use rand::{distributions::Alphanumeric, thread_rng};
+use serde::Serialize;
+use std::collections::HashMap;
 use std::env;
-use std::path::Path;
-use std::path::PathBuf;
 use std::fs;
 use std::fs::read_dir;
 use std::io::Write;
-use std::collections::HashMap;
+use std::path::Path;
+use std::path::PathBuf;
 use std::slice::Iter;
 use std::sync::Mutex;
-use anyhow::{Result, Error};
-use core::iter::Peekable;
-use uuid::Uuid;
-use chrono::DateTime;
-use lazy_static::lazy_static;
 use tokio::process::Command;
+use tower_http::services::ServeFile;
+use uuid::Uuid;
 
 #[macro_use]
 extern crate dotenv_codegen;
 
 fn generate_random_string(len: usize) -> String {
-  let rng = thread_rng();
-  let random_string: String = rng
-      .sample_iter(&Alphanumeric)
-      .take(len)
-      .map(char::from)
-      .collect();
-  random_string
+    let rng = thread_rng();
+    let random_string: String = rng
+        .sample_iter(&Alphanumeric)
+        .take(len)
+        .map(char::from)
+        .collect();
+    random_string
 }
 
 fn to_kebab_case(input: &str) -> String {
@@ -54,11 +53,7 @@ struct AppError(anyhow::Error);
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("{}", self.0),
-        )
-            .into_response()
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", self.0)).into_response()
     }
 }
 
@@ -114,7 +109,10 @@ where
 lazy_static! {
     static ref CONFIG: Mutex<HashMap<String, String>> = Mutex::new({
         let mut m = HashMap::new();
-        m.insert("storage_path".to_string(), dotenv!("STORAGE_PATH").to_string());
+        m.insert(
+            "storage_path".to_string(),
+            dotenv!("STORAGE_PATH").to_string(),
+        );
         m.insert("master_key".to_string(), dotenv!("MASTER_KEY").to_string());
         m.insert("port".to_string(), dotenv!("PORT").to_string());
         m
@@ -152,16 +150,30 @@ async fn main() {
             port = "7777".to_string();
         }
 
-        println!("Storage path:           \"{}\"", config.get("storage_path").unwrap());
+        println!(
+            "Storage path:           \"{}\"",
+            config.get("storage_path").unwrap()
+        );
         println!("Package version:        \"{}\"", env!("CARGO_PKG_VERSION"));
-        println!("Server listening on:    \"http://0.0.0.0:{}\"", config.get("port").unwrap());
+        println!(
+            "Server listening on:    \"http://0.0.0.0:{}\"",
+            config.get("port").unwrap()
+        );
 
         println!("\nThank you for using Lumberjack!\n");
 
         if config.get("master_key").unwrap().is_empty() {
             config.insert("master_key".to_string(), generate_random_string(128));
-            println!("{}", " No MASTER_KEY found in .env file. \n".bold().black().on_yellow());
-            println!("We generated a new secure master key for you (you can safely use this token):\n");
+            println!(
+                "{}",
+                " No MASTER_KEY found in .env file. \n"
+                    .bold()
+                    .black()
+                    .on_yellow()
+            );
+            println!(
+                "We generated a new secure master key for you (you can safely use this token):\n"
+            );
             println!(">> {} <<", config.get("master_key").unwrap());
             println!("\nRestart Lumberjack with this key as the MASTER_KEY environment variable\n");
         }
@@ -169,7 +181,10 @@ async fn main() {
         let storage_path = Path::new(config.get("storage_path").unwrap());
         if !storage_path.exists() {
             fs::create_dir_all(storage_path).unwrap_or_else(|_| {
-                panic!("Failed to create storage directory at: {}", storage_path.display())
+                panic!(
+                    "Failed to create storage directory at: {}",
+                    storage_path.display()
+                )
             });
         }
     }
@@ -182,11 +197,22 @@ async fn main() {
         .route("/size/:app/:file", get(log_size))
         .route_service("/static/main.js", ServeFile::new("static/main.js"))
         .route_service("/static/main.css", ServeFile::new("static/main.css"))
-        .route_service("/static/worker.sql-wasm.js", ServeFile::new("static/worker.sql-wasm.js"))
-        .route_service("/static/sql-wasm.wasm", ServeFile::new("static/sql-wasm.wasm"))
-        .route_service("/static/worker.log-parser.js", ServeFile::new("static/worker.log-parser.js"));
+        .route_service(
+            "/static/worker.sql-wasm.js",
+            ServeFile::new("static/worker.sql-wasm.js"),
+        )
+        .route_service(
+            "/static/sql-wasm.wasm",
+            ServeFile::new("static/sql-wasm.wasm"),
+        )
+        .route_service(
+            "/static/worker.log-parser.js",
+            ServeFile::new("static/worker.log-parser.js"),
+        );
 
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
+        .await
+        .unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -216,7 +242,13 @@ async fn root() -> RootTemplate {
         for log in logs {
             let log = log.unwrap();
             let log = log.path();
-            let log = log.file_name().unwrap().to_str().unwrap().to_string().replace(".jsonl", "");
+            let log = log
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string()
+                .replace(".jsonl", "");
             log_dates.push(log);
         }
         apps.insert(app, log_dates);
@@ -225,10 +257,13 @@ async fn root() -> RootTemplate {
 }
 
 #[debug_handler]
-async fn stream_log(PathExtractor(params): PathExtractor<(String,String)>, req: Request<Body>) -> Result<Response<Body>, AppError> {
+async fn stream_log(
+    PathExtractor(params): PathExtractor<(String, String)>,
+    req: Request<Body>,
+) -> Result<Response<Body>, AppError> {
     //let key = req.headers().get("Authorization");
     //if key.is_none() {
-        //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
+    //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
     //}
     //let key = key.unwrap().to_str().unwrap();
     let app = params.0.to_lowercase().replace(".", "").replace("/", "");
@@ -245,7 +280,7 @@ async fn stream_log(PathExtractor(params): PathExtractor<(String,String)>, req: 
     {
         let config = CONFIG.lock().unwrap();
         //if key != config.get("master_key").unwrap() {
-            //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+        //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
         //}
         app_path = Path::new(config.get("storage_path").unwrap()).join(app);
     }
@@ -260,10 +295,12 @@ async fn stream_log(PathExtractor(params): PathExtractor<(String,String)>, req: 
 }
 
 #[debug_handler]
-async fn log_size(PathExtractor(params): PathExtractor<(String, String)>) -> Result<Response<Body>, AppError> {
+async fn log_size(
+    PathExtractor(params): PathExtractor<(String, String)>,
+) -> Result<Response<Body>, AppError> {
     //let key = req.headers().get("Authorization");
     //if key.is_none() {
-        //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
+    //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
     //}
     //let key = key.unwrap().to_str().unwrap();
     let app = params.0.to_lowercase().replace(".", "").replace("/", "");
@@ -280,7 +317,7 @@ async fn log_size(PathExtractor(params): PathExtractor<(String, String)>) -> Res
     {
         let config = CONFIG.lock().unwrap();
         //if key != config.get("master_key").unwrap() {
-            //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+        //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
         //}
         app_path = Path::new(config.get("storage_path").unwrap()).join(app);
     }
@@ -292,16 +329,19 @@ async fn log_size(PathExtractor(params): PathExtractor<(String, String)>) -> Res
 
     let metadata = fs::metadata(log_path)?;
     let size = metadata.len() as f64;
-    let size_mb:f64 = size / 1024.0 / 1024.0;
+    let size_mb: f64 = size / 1024.0 / 1024.0;
     let size = format!("{:.2} MB", size_mb);
     Ok(Response::new(Body::from(size.to_string())))
 }
 
 #[debug_handler]
-async fn search_logs(PathExtractor(params): PathExtractor<(String, String)>, req: Request<Body>) -> Result<Response<Body>, AppError> {
+async fn search_logs(
+    PathExtractor(params): PathExtractor<(String, String)>,
+    req: Request<Body>,
+) -> Result<Response<Body>, AppError> {
     //let key = req.headers().get("Authorization");
     //if key.is_none() {
-        //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
+    //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
     //}
     //let key = key.unwrap().to_str().unwrap();
     let app = params.0.to_lowercase().replace(".", "").replace("/", "");
@@ -324,7 +364,7 @@ async fn search_logs(PathExtractor(params): PathExtractor<(String, String)>, req
     {
         let config = CONFIG.lock().unwrap();
         //if key != config.get("master_key").unwrap() {
-            //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+        //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
         //}
         app_path = Path::new(config.get("storage_path").unwrap()).join(app);
     }
@@ -349,24 +389,31 @@ async fn search_logs(PathExtractor(params): PathExtractor<(String, String)>, req
     }
     let filenames = String::from_utf8(output.stdout)?;
     let filenames = filenames.split("\n").collect::<Vec<&str>>();
-    let filenames = filenames.iter().filter(|&x| !x.is_empty()).map(|x| x.rsplit_once('/').unwrap().1).collect::<Vec<&str>>();
+    let filenames = filenames
+        .iter()
+        .filter(|&x| !x.is_empty())
+        .map(|x| x.rsplit_once('/').unwrap().1)
+        .collect::<Vec<&str>>();
     let json_output = serde_json::to_string(&filenames)?;
     Ok(Response::new(Body::from(json_output)))
 }
 
 #[debug_handler]
 async fn write_logs(req: Request<Body>) -> Result<StatusCode, AppError> {
-
     let key = req.headers().get("Authorization");
     if key.is_none() {
-        return Err(AppError(anyhow::anyhow!("Authorization header is required")));
+        return Err(AppError(anyhow::anyhow!(
+            "Authorization header is required"
+        )));
     }
     let key = key.unwrap().to_str().unwrap();
 
     let env = req.headers().get("Lumberjack-Env");
     let app = req.headers().get("Lumberjack-App");
-    if app.is_none() || env.is_none(){
-        return Err(AppError(anyhow::anyhow!("Lumberjack-App and Lumberjack-Env headers are required")));
+    if app.is_none() || env.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Lumberjack-App and Lumberjack-Env headers are required"
+        )));
     }
     let env = env.unwrap().to_str().unwrap().to_string();
     let app = to_kebab_case(app.unwrap().to_str().unwrap());
@@ -413,7 +460,7 @@ async fn write_logs(req: Request<Body>) -> Result<StatusCode, AppError> {
             lines.push(line.to_string());
         }
     }
-    
+
     write_log_files(logs, app_path)?;
 
     Ok(StatusCode::OK)
@@ -426,18 +473,20 @@ fn write_log_files(logs: Vec<Log>, app_path: PathBuf) -> Result<(), Error> {
     }
 
     for log in logs {
-        let log_date = DateTime::parse_from_rfc3339(log.timestamp.as_str())?.format("%Y-%m-%d").to_string();
+        let log_date = DateTime::parse_from_rfc3339(log.timestamp.as_str())?
+            .format("%Y-%m-%d")
+            .to_string();
 
         let daily_log_path = app_path.clone().join("search").join(log_date.clone());
         if !daily_log_path.exists() {
             fs::create_dir_all(&daily_log_path)?;
         }
-        
+
         let ledger = daily_ledger_path.join(format!("{}.jsonl", log_date));
         let mut ledger = fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&ledger)?;
+            .create(true)
+            .append(true)
+            .open(&ledger)?;
 
         let log_json = serde_json::to_string(&log)?;
         ledger.write_all(log_json.as_bytes())?;
@@ -492,7 +541,13 @@ fn create_log(lines: &Vec<String>) -> Log {
         let mut result = String::new();
         let mut section = LogSection::Message;
         let mut line_parts = line.split(":");
-        match line_parts.nth(0).unwrap_or("").trim().to_uppercase().as_str() {
+        match line_parts
+            .nth(0)
+            .unwrap_or("")
+            .trim()
+            .to_uppercase()
+            .as_str()
+        {
             "MESSAGE" => {
                 section = LogSection::Message;
                 result = parse_log_message(&mut lines);
@@ -546,7 +601,13 @@ fn parse_log_message(lines: &mut Peekable<Iter<'_, String>>) -> String {
     let mut result = String::new();
 
     loop {
-        match lines.peek().unwrap_or(&&String::from("---[EOL]---")).trim().to_uppercase().as_str() {
+        match lines
+            .peek()
+            .unwrap_or(&&String::from("---[EOL]---"))
+            .trim()
+            .to_uppercase()
+            .as_str()
+        {
             "---[EOL]---" => break,
             _ => {
                 let line = lines.next().unwrap();
