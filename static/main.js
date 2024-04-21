@@ -225,7 +225,10 @@ class TableComponent extends HTMLElement{
         window.addEventListener("table-refresh", async () => {
             if (this.loading) return;
             this.loading = true;
+            this.page = 0;
+            this.search = null;
             await sql.resetTables();
+            this.render();
             await parser.ingest(`/logs/${this.app}/${this.file}`);
             this.loading = false;
             this.render();
@@ -433,7 +436,7 @@ class TableComponent extends HTMLElement{
         }
     }
 
-    renderRow(log, columns){
+    renderRow(log, columns, i){
         let timestamp;
         if (this.timezone == "local"){
             timestamp = dayjs(log.timestamp).format("YYYY-MM-DD HH:mm:ss");
@@ -441,7 +444,7 @@ class TableComponent extends HTMLElement{
             timestamp = dayjs(log.timestamp).utc().format("YYYY-MM-DD HH:mm:ss");
         }
         return html`
-            <tr tabindex="0" @click=${this.handleRowClick} data-uid="${log["uid"]}" data-level="${log["level"]}" data-timestamp="${timestamp}">
+            <tr style="opacity:0;animation-delay: ${i * 25}ms" tabindex="0" @click=${this.handleRowClick} data-uid="${log["uid"]}" data-level="${log["level"]}" data-timestamp="${timestamp}">
                 ${columns.map(column => {
                     if (!column.show) return "";
                     if (column.col === "level"){
@@ -560,7 +563,7 @@ class TableComponent extends HTMLElement{
                     </tr>
                 </thead>
                 <tbody>
-                    ${logs.map(log => this.renderRow(log, columns))}
+                    ${logs.map((log, i) => this.renderRow(log, columns, i))}
                 </tbody>
             </table>
         `;

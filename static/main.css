@@ -662,6 +662,7 @@ body {
                 background-color: var(--bg-lighter);
                 transition: background-color 150ms var(--ease-in-out);
                 cursor: pointer;
+                animation: fade-in 150ms var(--ease-in) forwards;
 
                 &:hover,
                 &:focus-visible {
@@ -1025,5 +1026,14 @@ window-component{
                 color: var(--text-light);
             }
         }
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
     }
 }
