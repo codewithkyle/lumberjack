@@ -257,6 +257,103 @@ class TableComponent extends HTMLElement{
         this.render();
     }
 
+    handleBranchClick = async (e) => {
+        e.stopImmediatePropagation();
+        const target = e.currentTarget;
+        const logs = await sql.queryLogs(`
+                SELECT l.*, c.key, c.value
+                FROM logs l
+                FULL OUTER JOIN custom c ON l.uid = c.logId
+                WHERE l.branch = '${target.dataset.branch}'
+                ORDER BY l.timestamp DESC
+            `);
+        if (logs.lenght === 0) return;
+        const windowEl = document.body.querySelector(`window-component[window="${target.dataset.branch}"]`) || new WindowComponent({
+            name: `Branch - ${target.dataset.branch}`,
+            width: 550,
+            height: 400,
+            handle: target.dataset.branch,
+            view: html`
+                <div class="block w-full p-1.5">
+                    ${logs.map((log, i) => {
+                        let timestamp;
+                        if (this.timezone == "local"){
+                            timestamp = dayjs(log.timestamp).format("YYYY-MM-DD HH:mm:ss");
+                        } else {
+                            timestamp = dayjs(log.timestamp).utc().format("YYYY-MM-DD HH:mm:ss");
+                        }
+                        return html`
+                            <div class="log-accordion">
+                                <input type="checkbox" ?checked=${i === 0} id="${log.uid}">
+                                <label for="${log.uid}">
+                                    <div class="header w-full p-1.5" flex="row nowrap items-center justify-between">
+                                        <h4>${log.level} - ${timestamp}</h4>
+                                        <svg class="up" xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 13v-8l-3 3m6 0l-3 -3" /><path d="M9 17l1 0" /><path d="M14 17l1 0" /><path d="M19 17l1 0" /><path d="M4 17l1 0" /></svg>
+                                        <svg class="down" xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 11v8l3 -3m-6 0l3 3" /><path d="M9 7l1 0" /><path d="M14 7l1 0" /><path d="M19 7l1 0" /><path d="M4 7l1 0" /></svg>
+                                    </div>
+                                </label>
+                                <div class="log">
+                                    <dl grid="rows 1 gap-1.5" class="mb-1.5">
+                                        <div grid="columns 2 gap-1.5">
+                                            <div>
+                                                <dt>Level</dt>
+                                                <dd>${log.level}</dd>
+                                            </div>
+                                            <div>
+                                                <dt>Timestamp</dt>
+                                                <dd>${timestamp}</dd>
+                                            </div>
+                                        </div>
+                                        <div grid="columns 2 gap-1.5">
+                                            <div>
+                                                <dt>Category</dt>
+                                                <dd>${log.category}</dd>
+                                            </div>
+                                            <div>
+                                                <dt>Env</dt>
+                                                <dd>${log.env}</dd>
+                                            </div>
+                                        </div>
+                                        ${log.file.length ? 
+                                            html`
+                                                <div>
+                                                    <dt>File</dt>
+                                                    <dd>${log.file}</dd>
+                                                </div>
+                                            ` 
+                                            : ""
+                                        }
+                                        ${log.function.length || log.line !== null ? html`
+                                                <div grid="columns 2 gap-1.5">
+                                                    <div>
+                                                        <dt>Function</dt>
+                                                        <dd>${log.function}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt>Line</dt>
+                                                        <dd>${log.line || ""}</dd>
+                                                    </div>
+                                                </div>
+                                            ` 
+                                            : ""
+                                        }
+                                    </dl>
+                                    <h4>Message</h4>
+                                    <p>${log.message}</p>
+                                </div>
+                            </div>
+                        `;
+                    })}
+                </div>
+            `
+        });
+        if (!windowEl.isConnected){
+            document.body.appendChild(windowEl);
+        } else {
+            windowEl.focus();
+        }
+    }
+
     handleRowClick = async (e) => {
         const target = e.currentTarget;
         const log = (await sql.queryLogs(`
@@ -364,6 +461,21 @@ class TableComponent extends HTMLElement{
                         return html`
                             <td col="${column.col}">${timestamp}</td>
                         `;
+                    } else if (column.col === "branch") {
+                        if (log[column.col].length) {
+                            return html`
+                                <td col="${column.col}">
+                                    ${log[column.col]}
+                                    <button @click=${this.handleBranchClick} data-branch="${log[column.col]}">
+                                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 3v8.707" /><path d="M16 14l4 -4l-4 -4" /><path d="M6 21c0 -6.075 4.925 -11 11 -11h3" /></svg>
+                                    </button>
+                                </td>
+                            `;
+                        } else {
+                            return html`
+                                <td col="${column.col}">${log[column.col]}</td>
+                            `;
+                        }
                     } else if (column.col in log) {
                         return html`
                             <td col="${column.col}">${log[column.col]}</td>

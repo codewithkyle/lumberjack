@@ -202,6 +202,17 @@ body {
                             &[col="env"] {
                                 color: var(--text-darker);
                             }
+
+                            &[col="branch"] {
+                                & button {
+                                    color: var(--icon-dark);
+
+                                    &:hover,
+                                    &:focus-visible{
+                                        color: var(--icon-dark-hover);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -265,6 +276,24 @@ body {
                     }
                     & p {
                         color: var(--text-white);
+                    }
+                }
+
+                & .log-accordion {
+                    border-color: var(--border-dark);
+
+                    & label {
+                        & .header {
+                            border-bottom-color: var(--border-dark) !important;
+
+                            & h4 {
+                                color: var(--text-dark);
+                            }
+
+                            & svg {
+                                color: var(--icon-dark);
+                            }
+                        }
                     }
                 }
             }
@@ -676,6 +705,27 @@ body {
                         }
                     }
 
+                    &[col="branch"] {
+                        & button {
+                            color: var(--icon-light);
+                            width: 24px;
+                            height: 24px;
+                            display: inline-flex;
+                            justify-items: center;
+                            align-items: center;
+
+                            &:hover,
+                            &:focus-visible{
+                                color: var(--icon-light-hover);
+                            }
+                        }
+                        & svg {
+                            width: 14px;
+                            height: 14px;
+                            margin-left: 0.25rem;
+                        }
+                    }
+
                     &[col="message"]{
                         white-space: nowrap;
                     }
@@ -866,6 +916,80 @@ window-component{
         width: 100%;
         display: block;
         overflow-y: scroll;
+
+        & .log-accordion {
+            display: block;
+            width: 100%;
+            position: relative;
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+
+            &:last-child {
+                margin-bottom: 0;
+            }
+
+            & input {
+                top: 0;
+                left: 0;
+                opacity: 0;
+                visibility: hidden;
+                position: absolute;
+                width: 0;
+                height: 0;
+
+                &:checked + label {
+                    & + .log {
+                        display: block;
+                    }
+                    & .header {
+                        border-bottom: 1px solid var(--border-light);
+
+                        & .down {
+                            display: none;
+                        }
+
+                        & .up {
+                            display: inline-block;
+                        }
+                    }
+                }
+            }
+
+            & label {
+                display: block;
+                width: 100%;
+                cursor: pointer;
+
+                & .header {
+                    & h4 {
+                        font-weight: var(--font-medium);
+                        font-size: var(--font-sm);
+                        color: var(--text-light);
+                    }
+
+                    & svg {
+                        color: var(--icon-light);
+                        width: 14px;
+                        height: 14px;
+
+                        &.down {
+                            display: inline-block;
+                        }
+
+                        &.up {
+                            display: none;
+                        }
+                    }
+                }
+
+            }
+
+            & .log {
+                display: none;
+            }
+        }
 
         & .log {
             display: block;
