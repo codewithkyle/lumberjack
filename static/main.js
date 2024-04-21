@@ -1057,8 +1057,10 @@ class WindowComponent extends HTMLElement {
         if (this.h < this.minHeight){
             this.h = this.minHeight;
         }
-        localStorage.setItem(`${this.handle}-w`, this.w.toFixed(0).toString());
-        localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
+        if (this.size === "normal"){
+            localStorage.setItem(`${this.handle}-w`, this.w.toFixed(0).toString());
+            localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
+        }
         if (this.size !== "maximized"){
             localStorage.setItem(`${this.handle}-x`, this.x.toFixed(0).toString());
             localStorage.setItem(`${this.handle}-y`, this.y.toFixed(0).toString());
@@ -1208,9 +1210,11 @@ class WindowComponent extends HTMLElement {
                 ${this.renderControls()}
             </div>
             ${this.renderContent()}
-            ${new ResizeHandle(this, "x", this.minWidth, this.minHeight)}
-            ${new ResizeHandle(this, "y", this.minWidth, this.minHeight)}
-            ${new ResizeHandle(this, "both", this.minWidth, this.minHeight)}
+            ${this.size === "minimized" ? "" : html`
+                ${new ResizeHandle(this, "x", this.minWidth, this.minHeight)}
+                ${new ResizeHandle(this, "y", this.minWidth, this.minHeight)}
+                ${new ResizeHandle(this, "both", this.minWidth, this.minHeight)}
+            `}
         `;
         render(view, this);
     }
