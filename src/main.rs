@@ -17,7 +17,7 @@ use owo_colors::OwoColorize;
 use rand::Rng;
 use rand::{distributions::Alphanumeric, thread_rng};
 use serde::Serialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, io::{BufReader, BufWriter, Read, Seek, SeekFrom}};
 use std::env;
 use std::fs;
 use std::fs::read_dir;
@@ -32,6 +32,8 @@ use uuid::Uuid;
 
 #[macro_use]
 extern crate dotenv_codegen;
+
+static VERSION: u32 = 1;
 
 fn generate_random_string(len: usize) -> String {
     let rng = thread_rng();
@@ -117,6 +119,12 @@ lazy_static! {
         m.insert("port".to_string(), dotenv!("PORT").to_string());
         m
     });
+
+    static ref KEYS: Mutex<HashMap<String, Vec<String>>> = Mutex::new({
+        let m = HashMap::new();
+        m
+    });
+
 }
 
 #[tokio::main]
@@ -139,6 +147,7 @@ async fn main() {
     let mut port = "7777".to_string();
     {
         let mut config = CONFIG.lock().unwrap();
+        let mut keychain = KEYS.lock().unwrap();
 
         if config.get("storage_path").unwrap().is_empty() {
             config.insert("storage_path".to_string(), "./data".to_string());
@@ -187,6 +196,45 @@ async fn main() {
                 )
             });
         }
+
+        for path in fs::read_dir(&storage_path).unwrap() {
+            let path = path.unwrap().path();
+            let app = path.to_str().unwrap().rsplit_once("/").unwrap().1;
+            let keychain_path = path.join("keychain");
+
+            if keychain_path.exists() {
+                let file = fs::OpenOptions::new().read(true).open(&keychain_path).unwrap();
+                let mut reader = BufReader::new(&file);
+
+                let mut version_buffer = [0u8; 4];
+                reader.read_exact(&mut version_buffer).unwrap();
+                let _version:u32 = u32::from_be_bytes(version_buffer);
+
+                let mut key_count_buffer = [0u8; 4];
+                reader.read_exact(&mut key_count_buffer).unwrap();
+                let key_count:u32 = u32::from_be_bytes(key_count_buffer);
+
+                let mut keys: Vec<String> = Vec::with_capacity(key_count.try_into().unwrap());
+
+                for _ in 0..key_count {
+                    let mut is_active_buffer = [0u8; 1];
+                    reader.read_exact(&mut is_active_buffer).unwrap();
+                    let is_active = u8::from_be_bytes(is_active_buffer) == 1;
+                    if is_active {
+                        let mut key_buffer = [0u8; 64];
+                        reader.read_exact(&mut key_buffer).unwrap();
+                        let key = std::str::from_utf8(&key_buffer).unwrap();
+                        keys.push(key.to_string());
+                    } else {
+                        reader.seek(SeekFrom::Current(32)).unwrap();
+                    }
+                }
+
+                println!("{}", app);
+                println!("{:?}", &keys);
+                keychain.insert(app.to_string(), keys);
+            }
+        }
     }
 
     let app = Router::new()
@@ -195,6 +243,7 @@ async fn main() {
         .route("/logs/:app/:file", get(stream_log))
         .route("/search/:app/:file", post(search_logs))
         .route("/size/:app/:file", get(log_size))
+        .route("/admin/keys", post(create_key))
         .route_service("/static/main.js", ServeFile::new("static/main.js"))
         .route_service("/static/main.css", ServeFile::new("static/main.css"))
         .route_service(
@@ -254,6 +303,75 @@ async fn root() -> RootTemplate {
         apps.insert(app, log_dates);
     }
     RootTemplate { apps: apps }
+}
+
+#[debug_handler]
+async fn create_key(
+    req: Request<Body>
+) -> Result<Response<Body>, AppError> {
+    let key = req.headers().get("Authorization");
+    if key.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Authorization header is required"
+        )));
+    }
+    let key = key.unwrap().to_str().unwrap();
+
+    let app = req.headers().get("Lumberjack-App");
+    if app.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Lumberjack-App header is required"
+        )));
+    }
+    let app = to_kebab_case(app.unwrap().to_str().unwrap());
+
+    let mut app_path: PathBuf = Path::new("").to_path_buf();
+    {
+        let config = CONFIG.lock().unwrap();
+
+        if key != config.get("master_key").unwrap() {
+            return Err(AppError(anyhow::anyhow!("Invalid Master Authorization key")));
+        }
+
+        app_path = Path::new(config.get("storage_path").unwrap()).join(app);
+        if !app_path.exists() {
+            fs::create_dir_all(&app_path)?;
+        }
+    }
+
+    app_path = app_path.join("keychain");
+    let is_new = !app_path.exists();
+
+    let app_keys_file = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .open(&app_path)?;
+    let mut writer = BufWriter::new(&app_keys_file);
+
+    if is_new {
+        writer.write_all(&VERSION.to_be_bytes())?; // 4 bytes
+        writer.write_all(&1_u32.to_be_bytes())?; // 4 bytes
+    } else {
+        let mut reader = BufReader::new(&app_keys_file);
+        reader.seek(SeekFrom::Start(4))?;
+        let mut key_count_buffer = [0u8; 4];
+        reader.read_exact(&mut key_count_buffer).unwrap();
+        let mut key_count:u32 = u32::from_be_bytes(key_count_buffer);
+        key_count += 1;
+
+        writer.seek(SeekFrom::Start(4))?;
+        writer.write_all(&key_count.to_be_bytes())?;
+        writer.seek(SeekFrom::End(0))?;
+    }
+
+    writer.write_all(&1_u8.to_be_bytes())?;
+    let new_key = generate_random_string(64);
+    writer.write_all(new_key.as_bytes())?;
+
+    writer.flush()?;
+
+    return Ok(Response::new(Body::from("")));
 }
 
 #[debug_handler]
