@@ -215,7 +215,8 @@ async fn main() {
 
                 let mut keys: Vec<String> = Vec::with_capacity(key_count.try_into().unwrap());
 
-                for _ in 0..key_count {
+                let mut i = 0;
+                loop {
                     let mut is_active_buffer = [0u8; 1];
                     reader.read_exact(&mut is_active_buffer).unwrap();
                     let is_active = u8::from_be_bytes(is_active_buffer) == 1;
@@ -224,6 +225,10 @@ async fn main() {
                         reader.read_exact(&mut key_buffer).unwrap();
                         let key = std::str::from_utf8(&key_buffer).unwrap();
                         keys.push(key.to_string());
+                        i += 1;
+                        if i == key_count {
+                            break;
+                        }
                     } else {
                         reader.seek(SeekFrom::Current(64)).unwrap();
                     }
@@ -240,6 +245,7 @@ async fn main() {
         .route("/logs/:app/:file", get(stream_log))
         .route("/search/:app/:file", post(search_logs))
         .route("/size/:app/:file", get(log_size))
+        .route("/admin/keys", get(list_keys))
         .route("/admin/keys", post(create_key))
         .route("/admin/keys", delete(delete_key))
         .route_service("/static/main.js", ServeFile::new("static/main.js"))
@@ -331,7 +337,7 @@ async fn create_key(
             return Err(AppError(anyhow::anyhow!("Invalid Master Authorization key")));
         }
 
-        app_path = Path::new(config.get("storage_path").unwrap()).join(app);
+        app_path = Path::new(config.get("storage_path").unwrap()).join(&app);
         if !app_path.exists() {
             fs::create_dir_all(&app_path)?;
         }
@@ -365,11 +371,23 @@ async fn create_key(
 
     writer.write_all(&1_u8.to_be_bytes())?;
     let new_key = generate_random_string(64);
-    writer.write_all(new_key.as_bytes())?;
+    writer.write_all(&new_key.as_bytes())?;
 
     writer.flush()?;
 
-    return Ok(Response::new(Body::from("")));
+    {
+        let mut keychains = KEYS.lock().unwrap();
+        if keychains.contains_key(&app) {
+            let mut app_keychains = keychains.get_key_value(&app).unwrap().1.to_owned();
+            app_keychains.push(new_key.to_owned());
+            keychains.insert(app, app_keychains);
+        } else {
+            let keys = vec![new_key.to_owned()];
+            keychains.insert(app, keys);
+        }
+    }
+
+    return Ok(Response::new(Body::from(new_key)));
 }
 
 #[debug_handler]
@@ -426,7 +444,12 @@ async fn delete_key(
 
 
     let mut reader = BufReader::new(&app_keys_file);
-    reader.seek(SeekFrom::Start(8))?;
+    reader.seek(SeekFrom::Start(4))?;
+
+    let mut key_count_buffer = [0u8; 4];
+    reader.read_exact(&mut key_count_buffer).unwrap();
+    let mut key_count:u32 = u32::from_be_bytes(key_count_buffer);
+
     let mut reader_offset = 8;
     let total_bytes = app_keys_file.metadata()?.len();
     let mut can_delete = false;
@@ -453,6 +476,13 @@ async fn delete_key(
 
     if can_delete {
         let mut writer = BufWriter::new(&app_keys_file);
+
+        // Decrement key count
+        writer.seek(SeekFrom::Start(4))?;
+        key_count -= 1;
+        writer.write_all(&key_count.to_be_bytes())?;
+
+        // Disable key
         writer.seek(SeekFrom::Start(reader_offset))?;
         writer.write_all(&0_u8.to_be_bytes())?;
         writer.flush()?;
@@ -466,6 +496,45 @@ async fn delete_key(
     }
     
     return Ok(Response::new(Body::from("")));
+}
+
+#[debug_handler]
+async fn list_keys(
+    req: Request<Body>
+) -> Result<Response<Body>, AppError> {
+    let key = req.headers().get("Authorization");
+    if key.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Authorization header is required"
+        )));
+    }
+    let key = key.unwrap().to_str().unwrap();
+
+    let app = req.headers().get("Lumberjack-App");
+    if app.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Lumberjack-App header is required"
+        )));
+    }
+    let app = to_kebab_case(app.unwrap().to_str().unwrap());
+
+    {
+        let config = CONFIG.lock().unwrap();
+        if key != config.get("master_key").unwrap() {
+            return Err(AppError(anyhow::anyhow!("Invalid Master Authorization key")));
+        }
+    }
+
+    let keychains = KEYS.lock().unwrap();
+    if keychains.contains_key(&app) {
+        let app_keychains = keychains.get_key_value(&app).unwrap().1;
+        let json_output = serde_json::to_string(&app_keychains)?;
+        return Ok(Response::new(Body::from(json_output)));
+    }
+
+    return Err(AppError(anyhow::anyhow!(
+        format!("No applications exist with name {}", &app)
+    )));
 }
 
 #[debug_handler]
