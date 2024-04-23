@@ -5,8 +5,7 @@ use axum::{
     extract::Path as PathExtractor,
     http::{Request, StatusCode},
     response::{IntoResponse, Response},
-    routing::get,
-    routing::post,
+    routing::{delete, get, post},
     Router,
 };
 use axum_macros::debug_handler;
@@ -226,12 +225,10 @@ async fn main() {
                         let key = std::str::from_utf8(&key_buffer).unwrap();
                         keys.push(key.to_string());
                     } else {
-                        reader.seek(SeekFrom::Current(32)).unwrap();
+                        reader.seek(SeekFrom::Current(64)).unwrap();
                     }
                 }
 
-                println!("{}", app);
-                println!("{:?}", &keys);
                 keychain.insert(app.to_string(), keys);
             }
         }
@@ -244,6 +241,7 @@ async fn main() {
         .route("/search/:app/:file", post(search_logs))
         .route("/size/:app/:file", get(log_size))
         .route("/admin/keys", post(create_key))
+        .route("/admin/keys", delete(delete_key))
         .route_service("/static/main.js", ServeFile::new("static/main.js"))
         .route_service("/static/main.css", ServeFile::new("static/main.css"))
         .route_service(
@@ -371,6 +369,102 @@ async fn create_key(
 
     writer.flush()?;
 
+    return Ok(Response::new(Body::from("")));
+}
+
+#[debug_handler]
+async fn delete_key(
+    req: Request<Body>
+) -> Result<Response<Body>, AppError> {
+    let key = req.headers().get("Authorization");
+    if key.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Authorization header is required"
+        )));
+    }
+    let key = key.unwrap().to_str().unwrap();
+
+    let app = req.headers().get("Lumberjack-App");
+    if app.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Lumberjack-App header is required"
+        )));
+    }
+    let app = to_kebab_case(app.unwrap().to_str().unwrap());
+
+    let mut app_path: PathBuf = Path::new("").to_path_buf();
+    {
+        let config = CONFIG.lock().unwrap();
+
+        if key != config.get("master_key").unwrap() {
+            return Err(AppError(anyhow::anyhow!("Invalid Master Authorization key")));
+        }
+
+        app_path = Path::new(config.get("storage_path").unwrap()).join(&app);
+        if !app_path.exists() {
+            fs::create_dir_all(&app_path)?;
+        }
+    }
+
+    app_path = app_path.join("keychain");
+    if !app_path.exists() {
+        return Ok(Response::new(Body::from("")));
+    }
+
+    let body = axum::body::to_bytes(req.into_body(), std::usize::MAX).await?;
+    if body.is_empty() {
+        return Err(AppError(anyhow::anyhow!("Body is empty")));
+    }
+
+    let body = String::from_utf8(body.to_vec())?;
+
+    let app_keys_file = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .open(&app_path)?;
+
+
+    let mut reader = BufReader::new(&app_keys_file);
+    reader.seek(SeekFrom::Start(8))?;
+    let mut reader_offset = 8;
+    let total_bytes = app_keys_file.metadata()?.len();
+    let mut can_delete = false;
+
+    loop {
+        let mut is_active_buffer = [0u8; 1];
+        reader.read_exact(&mut is_active_buffer).unwrap();
+        let is_active = u8::from_be_bytes(is_active_buffer) == 1;
+
+        let mut key_buffer = [0u8; 64];
+        reader.read_exact(&mut key_buffer).unwrap();
+        let key = String::from_utf8(key_buffer.to_vec()).unwrap();
+
+        if key.trim() == body.trim() {
+            can_delete = is_active;
+            break;
+        }
+
+        reader_offset += 65;
+        if reader_offset == total_bytes {
+            break;
+        }
+    }
+
+    if can_delete {
+        let mut writer = BufWriter::new(&app_keys_file);
+        writer.seek(SeekFrom::Start(reader_offset))?;
+        writer.write_all(&0_u8.to_be_bytes())?;
+        writer.flush()?;
+    }
+
+    {
+        let mut keychain = KEYS.lock().unwrap();
+        let mut app_keychain = keychain.get_key_value(&app).unwrap().1.to_owned();
+        app_keychain.retain(|x| x != body.trim());
+        keychain.insert(app, app_keychain);
+    }
+    
     return Ok(Response::new(Body::from("")));
 }
 
