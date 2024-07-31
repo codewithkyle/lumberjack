@@ -16,7 +16,6 @@ use owo_colors::OwoColorize;
 use rand::Rng;
 use rand::{distributions::Alphanumeric, thread_rng};
 use serde::Serialize;
-use std::{collections::HashMap, io::{BufReader, BufWriter, Read, Seek, SeekFrom}};
 use std::env;
 use std::fs;
 use std::fs::read_dir;
@@ -25,6 +24,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::slice::Iter;
 use std::sync::Mutex;
+use std::{
+    collections::HashMap,
+    io::{BufReader, BufWriter, Read, Seek, SeekFrom},
+};
 use tokio::process::Command;
 use tower_http::services::ServeFile;
 use uuid::Uuid;
@@ -118,12 +121,10 @@ lazy_static! {
         m.insert("port".to_string(), dotenv!("PORT").to_string());
         m
     });
-
     static ref KEYS: Mutex<HashMap<String, Vec<String>>> = Mutex::new({
         let m = HashMap::new();
         m
     });
-
 }
 
 #[tokio::main]
@@ -202,16 +203,19 @@ async fn main() {
             let keychain_path = path.join("keychain");
 
             if keychain_path.exists() {
-                let file = fs::OpenOptions::new().read(true).open(&keychain_path).unwrap();
+                let file = fs::OpenOptions::new()
+                    .read(true)
+                    .open(&keychain_path)
+                    .unwrap();
                 let mut reader = BufReader::new(&file);
 
                 let mut version_buffer = [0u8; 4];
                 reader.read_exact(&mut version_buffer).unwrap();
-                let _version:u32 = u32::from_be_bytes(version_buffer);
+                let _version: u32 = u32::from_be_bytes(version_buffer);
 
                 let mut key_count_buffer = [0u8; 4];
                 reader.read_exact(&mut key_count_buffer).unwrap();
-                let key_count:u32 = u32::from_be_bytes(key_count_buffer);
+                let key_count: u32 = u32::from_be_bytes(key_count_buffer);
 
                 let mut keys: Vec<String> = Vec::with_capacity(key_count.try_into().unwrap());
 
@@ -310,9 +314,7 @@ async fn root() -> RootTemplate {
 }
 
 #[debug_handler]
-async fn create_key(
-    req: Request<Body>
-) -> Result<Response<Body>, AppError> {
+async fn create_key(req: Request<Body>) -> Result<Response<Body>, AppError> {
     let key = req.headers().get("Authorization");
     if key.is_none() {
         return Err(AppError(anyhow::anyhow!(
@@ -334,7 +336,9 @@ async fn create_key(
         let config = CONFIG.lock().unwrap();
 
         if key != config.get("master_key").unwrap() {
-            return Err(AppError(anyhow::anyhow!("Invalid Master Authorization key")));
+            return Err(AppError(anyhow::anyhow!(
+                "Invalid Master Authorization key"
+            )));
         }
 
         app_path = Path::new(config.get("storage_path").unwrap()).join(&app);
@@ -347,10 +351,10 @@ async fn create_key(
     let is_new = !app_path.exists();
 
     let app_keys_file = fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .read(true)
-            .open(&app_path)?;
+        .create(true)
+        .write(true)
+        .read(true)
+        .open(&app_path)?;
     let mut writer = BufWriter::new(&app_keys_file);
 
     if is_new {
@@ -361,7 +365,7 @@ async fn create_key(
         reader.seek(SeekFrom::Start(4))?;
         let mut key_count_buffer = [0u8; 4];
         reader.read_exact(&mut key_count_buffer).unwrap();
-        let mut key_count:u32 = u32::from_be_bytes(key_count_buffer);
+        let mut key_count: u32 = u32::from_be_bytes(key_count_buffer);
         key_count += 1;
 
         writer.seek(SeekFrom::Start(4))?;
@@ -391,9 +395,7 @@ async fn create_key(
 }
 
 #[debug_handler]
-async fn delete_key(
-    req: Request<Body>
-) -> Result<Response<Body>, AppError> {
+async fn delete_key(req: Request<Body>) -> Result<Response<Body>, AppError> {
     let key = req.headers().get("Authorization");
     if key.is_none() {
         return Err(AppError(anyhow::anyhow!(
@@ -415,7 +417,9 @@ async fn delete_key(
         let config = CONFIG.lock().unwrap();
 
         if key != config.get("master_key").unwrap() {
-            return Err(AppError(anyhow::anyhow!("Invalid Master Authorization key")));
+            return Err(AppError(anyhow::anyhow!(
+                "Invalid Master Authorization key"
+            )));
         }
 
         app_path = Path::new(config.get("storage_path").unwrap()).join(&app);
@@ -437,18 +441,17 @@ async fn delete_key(
     let body = String::from_utf8(body.to_vec())?;
 
     let app_keys_file = fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .read(true)
-            .open(&app_path)?;
-
+        .create(true)
+        .write(true)
+        .read(true)
+        .open(&app_path)?;
 
     let mut reader = BufReader::new(&app_keys_file);
     reader.seek(SeekFrom::Start(4))?;
 
     let mut key_count_buffer = [0u8; 4];
     reader.read_exact(&mut key_count_buffer).unwrap();
-    let mut key_count:u32 = u32::from_be_bytes(key_count_buffer);
+    let mut key_count: u32 = u32::from_be_bytes(key_count_buffer);
 
     let mut reader_offset = 8;
     let total_bytes = app_keys_file.metadata()?.len();
@@ -494,14 +497,12 @@ async fn delete_key(
         app_keychain.retain(|x| x != body.trim());
         keychain.insert(app, app_keychain);
     }
-    
+
     return Ok(Response::new(Body::from("")));
 }
 
 #[debug_handler]
-async fn list_keys(
-    req: Request<Body>
-) -> Result<Response<Body>, AppError> {
+async fn list_keys(req: Request<Body>) -> Result<Response<Body>, AppError> {
     let key = req.headers().get("Authorization");
     if key.is_none() {
         return Err(AppError(anyhow::anyhow!(
@@ -521,7 +522,9 @@ async fn list_keys(
     {
         let config = CONFIG.lock().unwrap();
         if key != config.get("master_key").unwrap() {
-            return Err(AppError(anyhow::anyhow!("Invalid Master Authorization key")));
+            return Err(AppError(anyhow::anyhow!(
+                "Invalid Master Authorization key"
+            )));
         }
     }
 
@@ -532,9 +535,10 @@ async fn list_keys(
         return Ok(Response::new(Body::from(json_output)));
     }
 
-    return Err(AppError(anyhow::anyhow!(
-        format!("No applications exist with name {}", &app)
-    )));
+    return Err(AppError(anyhow::anyhow!(format!(
+        "No applications exist with name {}",
+        &app
+    ))));
 }
 
 #[debug_handler]
@@ -542,11 +546,13 @@ async fn stream_log(
     PathExtractor(params): PathExtractor<(String, String)>,
     req: Request<Body>,
 ) -> Result<Response<Body>, AppError> {
-    //let key = req.headers().get("Authorization");
-    //if key.is_none() {
-    //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
-    //}
-    //let key = key.unwrap().to_str().unwrap();
+    let key = req.headers().get("Authorization");
+    if key.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Authorization header is required"
+        )));
+    }
+    let key = key.unwrap().to_str().unwrap();
     let app = params.0.to_lowercase().replace(".", "").replace("/", "");
     let file = params.1.to_lowercase().replace(".", "").replace("/", "");
 
@@ -560,9 +566,23 @@ async fn stream_log(
     let mut app_path: PathBuf = Path::new("").to_path_buf();
     {
         let config = CONFIG.lock().unwrap();
-        //if key != config.get("master_key").unwrap() {
-        //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
-        //}
+        let keys = KEYS.lock().unwrap();
+
+        let mut authorized = false;
+        if keys.contains_key(&app) {
+            let app_keys = keys.get(&app).unwrap();
+            authorized = app_keys
+                .iter()
+                .filter_map(|k| {
+                    return Some(*k == key);
+                })
+                .collect::<Vec<bool>>()
+                .contains(&true);
+        }
+
+        if !authorized && key != config.get("master_key").unwrap() {
+            return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+        }
         app_path = Path::new(config.get("storage_path").unwrap()).join(app);
     }
 
@@ -578,12 +598,15 @@ async fn stream_log(
 #[debug_handler]
 async fn log_size(
     PathExtractor(params): PathExtractor<(String, String)>,
+    req: Request<Body>,
 ) -> Result<Response<Body>, AppError> {
-    //let key = req.headers().get("Authorization");
-    //if key.is_none() {
-    //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
-    //}
-    //let key = key.unwrap().to_str().unwrap();
+    let key = req.headers().get("Authorization");
+    if key.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Authorization header is required"
+        )));
+    }
+    let key = key.unwrap().to_str().unwrap();
     let app = params.0.to_lowercase().replace(".", "").replace("/", "");
     let file = params.1.to_lowercase().replace(".", "").replace("/", "");
 
@@ -597,9 +620,23 @@ async fn log_size(
     let mut app_path: PathBuf = Path::new("").to_path_buf();
     {
         let config = CONFIG.lock().unwrap();
-        //if key != config.get("master_key").unwrap() {
-        //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
-        //}
+        let keys = KEYS.lock().unwrap();
+
+        let mut authorized = false;
+        if keys.contains_key(&app) {
+            let app_keys = keys.get(&app).unwrap();
+            authorized = app_keys
+                .iter()
+                .filter_map(|k| {
+                    return Some(*k == key);
+                })
+                .collect::<Vec<bool>>()
+                .contains(&true);
+        }
+
+        if !authorized && key != config.get("master_key").unwrap() {
+            return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+        }
         app_path = Path::new(config.get("storage_path").unwrap()).join(app);
     }
 
@@ -620,11 +657,13 @@ async fn search_logs(
     PathExtractor(params): PathExtractor<(String, String)>,
     req: Request<Body>,
 ) -> Result<Response<Body>, AppError> {
-    //let key = req.headers().get("Authorization");
-    //if key.is_none() {
-    //return Err(AppError(anyhow::anyhow!("Authorization header is required")));
-    //}
-    //let key = key.unwrap().to_str().unwrap();
+    let key = req.headers().get("Authorization");
+    if key.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Authorization header is required"
+        )));
+    }
+    let key = key.unwrap().to_str().unwrap();
     let app = params.0.to_lowercase().replace(".", "").replace("/", "");
     let file = params.1.to_lowercase().replace(".", "").replace("/", "");
 
@@ -635,20 +674,34 @@ async fn search_logs(
         return Err(AppError(anyhow::anyhow!("File is required")));
     }
 
+    let mut app_path: PathBuf = Path::new("").to_path_buf();
+    {
+        let config = CONFIG.lock().unwrap();
+        let keys = KEYS.lock().unwrap();
+
+        let mut authorized = false;
+        if keys.contains_key(&app) {
+            let app_keys = keys.get(&app).unwrap();
+            authorized = app_keys
+                .iter()
+                .filter_map(|k| {
+                    return Some(*k == key);
+                })
+                .collect::<Vec<bool>>()
+                .contains(&true);
+        }
+
+        if !authorized && key != config.get("master_key").unwrap() {
+            return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
+        }
+        app_path = Path::new(config.get("storage_path").unwrap()).join(app);
+    }
+
     let body = axum::body::to_bytes(req.into_body(), std::usize::MAX).await?;
     if body.is_empty() {
         return Err(AppError(anyhow::anyhow!("Body is empty")));
     }
     let query_string = String::from_utf8(body.to_vec())?;
-
-    let mut app_path: PathBuf = Path::new("").to_path_buf();
-    {
-        let config = CONFIG.lock().unwrap();
-        //if key != config.get("master_key").unwrap() {
-        //return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
-        //}
-        app_path = Path::new(config.get("storage_path").unwrap()).join(app);
-    }
 
     let log_path = app_path.join("search").join(file);
     if !log_path.exists() {
@@ -702,8 +755,21 @@ async fn write_logs(req: Request<Body>) -> Result<StatusCode, AppError> {
     let mut app_path: PathBuf = Path::new("").to_path_buf();
     {
         let config = CONFIG.lock().unwrap();
+        let keys = KEYS.lock().unwrap();
 
-        if key != config.get("master_key").unwrap() {
+        let mut authorized = false;
+        if keys.contains_key(&app) {
+            let app_keys = keys.get(&app).unwrap();
+            authorized = app_keys
+                .iter()
+                .filter_map(|k| {
+                    return Some(*k == key);
+                })
+                .collect::<Vec<bool>>()
+                .contains(&true);
+        }
+
+        if !authorized && key != config.get("master_key").unwrap() {
             return Err(AppError(anyhow::anyhow!("Invalid Authorization key")));
         }
 
