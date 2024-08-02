@@ -16,7 +16,7 @@ use owo_colors::OwoColorize;
 use rand::Rng;
 use rand::{distributions::Alphanumeric, thread_rng};
 use serde::Serialize;
-use std::env;
+use std::{env, fmt::{self, Display}};
 use std::fs;
 use std::fs::read_dir;
 use std::io::Write;
@@ -51,6 +51,21 @@ fn to_kebab_case(input: &str) -> String {
     let trimmed = input.trim();
     let kebab_case = trimmed.to_lowercase().replace(" ", "-");
     kebab_case
+}
+
+#[derive(Clone, Debug, Serialize)]
+enum Rentention {
+    DELETE,
+    ARCHIVE,
+}
+
+impl Display for Rentention {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Rentention::DELETE => write!(f, "DELETE"),
+            Rentention::ARCHIVE => write!(f, "ARCHIVE"),
+        }
+    }
 }
 
 struct AppError(anyhow::Error);
@@ -119,6 +134,8 @@ lazy_static! {
         );
         m.insert("master_key".to_string(), dotenv!("MASTER_KEY").to_string());
         m.insert("port".to_string(), dotenv!("PORT").to_string());
+        m.insert("mode".to_string(), dotenv!("MODE").to_string().to_lowercase());
+        m.insert("days_retained".to_string(), dotenv!("DAYS_RETAINED").to_string());
         m
     });
     static ref KEYS: Mutex<HashMap<String, Vec<String>>> = Mutex::new({
@@ -159,6 +176,16 @@ async fn main() {
             port = "7777".to_string();
         }
 
+        let mode = match config.get("mode").unwrap().as_str() {
+            "delete" => Rentention::DELETE.to_string(),
+            "archive" => Rentention::ARCHIVE.to_string(),
+            _ => Rentention::DELETE.to_string(),
+        };
+        config.insert("mode".to_string(), mode);
+
+        let days_retained = config.get("days_retained").unwrap().parse::<u32>().unwrap_or(14);
+        config.insert("days_retained".to_string(), days_retained.to_string());
+
         println!(
             "Storage path:           \"{}\"",
             config.get("storage_path").unwrap()
@@ -168,6 +195,8 @@ async fn main() {
             "Server listening on:    \"http://0.0.0.0:{}\"",
             config.get("port").unwrap()
         );
+        println!("Rentention:             \"{} days\"", config.get("days_retained").unwrap());
+        println!("Mode:                   \"{}\"", config.get("mode").unwrap()); 
 
         println!("\nThank you for using Lumberjack!\n");
 
