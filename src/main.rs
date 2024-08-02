@@ -16,7 +16,6 @@ use owo_colors::OwoColorize;
 use rand::Rng;
 use rand::{distributions::Alphanumeric, thread_rng};
 use serde::Serialize;
-use std::{env, fmt::{self, Display}};
 use std::fs;
 use std::fs::read_dir;
 use std::io::Write;
@@ -27,6 +26,10 @@ use std::sync::Mutex;
 use std::{
     collections::HashMap,
     io::{BufReader, BufWriter, Read, Seek, SeekFrom},
+};
+use std::{
+    env,
+    fmt::{self, Display},
 };
 use tokio::process::Command;
 use tower_http::services::ServeFile;
@@ -134,8 +137,14 @@ lazy_static! {
         );
         m.insert("master_key".to_string(), dotenv!("MASTER_KEY").to_string());
         m.insert("port".to_string(), dotenv!("PORT").to_string());
-        m.insert("mode".to_string(), dotenv!("MODE").to_string().to_lowercase());
-        m.insert("days_retained".to_string(), dotenv!("DAYS_RETAINED").to_string());
+        m.insert(
+            "mode".to_string(),
+            dotenv!("MODE").to_string().to_lowercase(),
+        );
+        m.insert(
+            "days_retained".to_string(),
+            dotenv!("DAYS_RETAINED").to_string(),
+        );
         m
     });
     static ref KEYS: Mutex<HashMap<String, Vec<String>>> = Mutex::new({
@@ -183,7 +192,11 @@ async fn main() {
         };
         config.insert("mode".to_string(), mode);
 
-        let days_retained = config.get("days_retained").unwrap().parse::<u32>().unwrap_or(14);
+        let days_retained = config
+            .get("days_retained")
+            .unwrap()
+            .parse::<u32>()
+            .unwrap_or(14);
         config.insert("days_retained".to_string(), days_retained.to_string());
 
         println!(
@@ -195,8 +208,14 @@ async fn main() {
             "Server listening on:    \"http://0.0.0.0:{}\"",
             config.get("port").unwrap()
         );
-        println!("Rentention:             \"{} days\"", config.get("days_retained").unwrap());
-        println!("Mode:                   \"{}\"", config.get("mode").unwrap()); 
+        println!(
+            "Rentention:             \"{} days\"",
+            config.get("days_retained").unwrap()
+        );
+        println!(
+            "Mode:                   \"{}\"",
+            config.get("mode").unwrap()
+        );
 
         println!("\nThank you for using Lumberjack!\n");
 
@@ -281,6 +300,7 @@ async fn main() {
         .route("/admin/keys", get(list_keys))
         .route("/admin/keys", post(create_key))
         .route("/admin/keys", delete(delete_key))
+        .route("/admin/cleanup", post(cleanup_logs))
         .route_service("/static/main.js", ServeFile::new("static/main.js"))
         .route_service("/static/main.css", ServeFile::new("static/main.css"))
         .route_service(
@@ -421,6 +441,88 @@ async fn create_key(req: Request<Body>) -> Result<Response<Body>, AppError> {
     }
 
     return Ok(Response::new(Body::from(new_key)));
+}
+
+#[debug_handler]
+async fn cleanup_logs(req: Request<Body>) -> Result<Response<Body>, AppError> {
+    let key = req.headers().get("Authorization");
+    if key.is_none() {
+        return Err(AppError(anyhow::anyhow!(
+            "Authorization header is required"
+        )));
+    }
+    let key = key.unwrap().to_str().unwrap();
+
+    let mut retention = Rentention::DELETE;
+    let retention_date;
+    let storage_path;
+    {
+        let config = CONFIG.lock().unwrap();
+
+        if key != config.get("master_key").unwrap() {
+            return Err(AppError(anyhow::anyhow!(
+                "Invalid Master Authorization key"
+            )));
+        }
+
+        storage_path = config.get("storage_path").unwrap().to_owned();
+
+        match config.get("mode").unwrap().as_str() {
+            "delete" => retention = Rentention::DELETE,
+            "archive" => retention = Rentention::ARCHIVE,
+            _ => retention = Rentention::DELETE,
+        }
+
+        let retention_days = config
+            .get("days_retained")
+            .unwrap()
+            .parse::<u32>()
+            .unwrap_or(14);
+        retention_date = chrono::Utc::now()
+            .checked_sub_signed(chrono::Duration::days(retention_days.into()))
+            .unwrap();
+    }
+
+    let storage_path = Path::new(&storage_path);
+    let app_dirs = read_dir(storage_path)?;
+    for app_dir in app_dirs {
+        let app_dir = app_dir.unwrap();
+        let app_dir = app_dir.path();
+        let app = app_dir.file_name().unwrap().to_str().unwrap().to_string();
+        let app_path = storage_path.join(app);
+
+        let log_path = app_path.join("ledgers");
+        if !log_path.exists() {
+            continue;
+        }
+
+        let logs = read_dir(log_path)?;
+        for log in logs {
+            let log = log.unwrap();
+            let log = log.path();
+            let log_date = log.file_name().unwrap().to_str().unwrap().to_string();
+            let log_date = log_date.replace(".jsonl", "");
+            let log_date = chrono::DateTime::parse_from_rfc3339(log_date.as_str()).unwrap();
+            if log_date < retention_date {
+                match retention {
+                    Rentention::DELETE => {
+                        fs::remove_file(log)?;
+                        let search_cache = app_path
+                            .join("search")
+                            .join(log_date.format("%Y-%m-%d").to_string());
+                        if search_cache.exists() {
+                            fs::remove_dir_all(search_cache)?;
+                        }
+                    }
+                    Rentention::ARCHIVE => {
+                        todo!("Archive logs in S3 or similar storage");
+                    }
+                }
+            }
+        }
+    }
+
+    return Ok(Response::new(Body::from("")));
 }
 
 #[debug_handler]
